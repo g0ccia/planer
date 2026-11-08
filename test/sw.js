@@ -11,6 +11,11 @@ self.addEventListener("fetch", function (e) {
   if (u.origin !== self.location.origin || u.pathname.indexOf("/_blob/") < 0) return;
   var key = u.origin + u.pathname;
   e.respondWith(caches.open("planer-blobs").then(function (c) {
-    return c.match(key).then(function (r) { return r || new Response("", { status: 404 }); });
+    return c.match(key).then(function (r) {
+      if (r) return r;
+      /* Beispielfotos der Testfassung liegen als Dateien daneben */
+      var m = u.pathname.match(/_blob\/(demo-foto-\d+)$/);
+      return m ? fetch(new URL("demo/" + m[1] + ".jpg", self.registration.scope)) : new Response("", { status: 404 });
+    });
   }));
 });
