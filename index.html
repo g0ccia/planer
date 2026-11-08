@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" type="image/png" href="icon-192.png">
-<title>Planer (Test)</title>
+<title>Planer</title>
 <style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1368,6 +1368,18 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
 .att-open.is-ink img, .nphoto.is-ink img { object-position: top; }
 .att-btns { display: flex; flex-wrap: wrap; gap: 6px; }
 .att-btns .madd { align-self: auto; }
+
+#sbLogin { position: fixed; inset: 0; z-index: 200; display: flex; align-items: center; justify-content: center;
+  background: var(--bg); color: var(--fg); padding: 24px; }
+#sbLogin .sbl-card { width: min(340px, 100%); display: flex; flex-direction: column; gap: 14px; }
+#sbLogin h1 { margin: 0 0 6px; font: 600 30px/1.1 var(--f-serif); }
+#sbLogin label { display: flex; flex-direction: column; gap: 6px; font: 600 11px/1 var(--f-cond); letter-spacing: 0.1em; text-transform: uppercase; color: var(--fg-soft); }
+#sbLogin input { font: 16px/1.3 var(--f-serif); padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--fg); text-transform: none; letter-spacing: 0; }
+#sbLogin button { margin-top: 6px; padding: 12px; border-radius: 999px; border: 0; background: var(--orange); color: var(--on-accent); font: 600 15px/1 var(--f-cond); letter-spacing: 0.1em; text-transform: uppercase; }
+#sbLogin button:disabled { opacity: 0.6; }
+#sbLogin .sbl-msg { margin: 0; min-height: 1.2em; color: var(--now); font-size: 14px; }
+#sbBanner { position: fixed; left: 16px; right: 16px; top: calc(16px + env(safe-area-inset-top, 0px)); z-index: 210;
+  padding: 12px 14px; border-radius: 12px; background: var(--now); color: #fff; font: 15px/1.35 var(--f-serif); }
 </style>
 </head>
 <body>
@@ -1610,18 +1622,24 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   <p class="ink-msg off" id="inkMsg">&nbsp;</p>
 </div>
 
+<script src="vendor/supabase.js"></script>
 <script>
 (function () {
-  var KEY = "planer-test-v1";
-  if (location.hash === "#reset") {
-    try { localStorage.removeItem(KEY); } catch (e) {}
-    try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {}
-  }
-  var store = null;
-  try { store = JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) { store = null; }
-  if (!store || typeof store !== "object") store = {};
+  var SB_URL = "https://jlhoredexldufkswpjir.supabase.co";
+  var SB_KEY = "sb_publishable_X5dqh5eaFk9d4LM6BxCNAg_FMM8ENqX";
+  var BUCKET = "anhaenge";
+  var SIGN_SECS = 7 * 24 * 3600;
 
-  function save() { try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) {} }
+  try { if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js"); } catch (e) {}
+
+  var sb = window.supabase.createClient(SB_URL, SB_KEY, {
+    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, storageKey: "planer-auth" }
+  });
+
+  /* ---------- lokaler Stand ---------- */
+  var store = new Map();
+  var subs = [];
+  var pending = new Set(), flushTimer = null;
   function clone(v) { return v == null ? v : JSON.parse(JSON.stringify(v)); }
   function isObj(v) { return v && typeof v === "object" && !Array.isArray(v); }
   function merge(t, p, top) {
@@ -1632,48 +1650,76 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
       t[k] = clone(v);
     });
   }
-  var subs = [];
+  function collOf(path) { return path.slice(0, path.indexOf("/")); }
   function colSnap(name) {
-    var pre = name + "/", docs = [];
-    Object.keys(store).forEach(function (p) {
-      if (p.indexOf(pre) === 0 && p.slice(pre.length).indexOf("/") < 0) {
-        var v = store[p];
-        docs.push({ id: p.slice(pre.length), exists: true, data: function () { return clone(v); } });
-      }
+    var docs = [];
+    store.forEach(function (v, p) {
+      if (collOf(p) === name) docs.push({ id: p.slice(name.length + 1), exists: true, data: function () { return clone(v); } });
     });
     return { docs: docs, size: docs.length, empty: !docs.length, forEach: function (f) { docs.forEach(f); } };
   }
   function docSnap(path) {
-    var v = store[path];
-    return { id: path.split("/").pop(), exists: v !== undefined, data: function () { return v === undefined ? undefined : clone(v); } };
+    var v = store.get(path);
+    return { id: path.slice(path.indexOf("/") + 1), exists: v !== undefined, data: function () { return v === undefined ? undefined : clone(v); } };
   }
   function notify(path) {
-    var col = path.slice(0, path.lastIndexOf("/"));
-    subs.forEach(function (s) {
-      if ((s.t === "c" && s.n === col) || (s.t === "d" && s.n === path)) {
-        var snap = s.t === "c" ? colSnap(s.n) : docSnap(s.n);
-        setTimeout(function () { s.cb(snap); }, 0);
-      }
+    if (path === "*") subs.forEach(function (s) { pending.add(s); });
+    else {
+      var c = collOf(path);
+      subs.forEach(function (s) { if ((s.t === "c" && s.n === c) || (s.t === "d" && s.n === path)) pending.add(s); });
+    }
+    if (!flushTimer) flushTimer = setTimeout(flush, 0);
+  }
+  function flush() {
+    flushTimer = null;
+    var list = Array.from(pending); pending.clear();
+    list.forEach(function (s) {
+      if (subs.indexOf(s) < 0) return;
+      try { s.cb(s.t === "c" ? colSnap(s.n) : docSnap(s.n)); } catch (e) { console.error(e); }
     });
   }
   function sub(t, n, cb) {
     var s = { t: t, n: n, cb: cb }; subs.push(s);
-    setTimeout(function () { cb(t === "c" ? colSnap(n) : docSnap(n)); }, 0);
+    pending.add(s); if (!flushTimer) flushTimer = setTimeout(flush, 0);
     return function () { var i = subs.indexOf(s); if (i >= 0) subs.splice(i, 1); };
   }
+  function fail(error) {
+    var e = new Error((error && error.message) || "Verbindung zu Supabase fehlgeschlagen.");
+    e.code = error && error.code;
+    return e;
+  }
+
+  /* ---------- Schreiben ---------- */
   function docRef(path) {
     return {
-      id: path.split("/").pop(), path: path,
+      id: path.slice(path.indexOf("/") + 1), path: path,
       get: function () { return Promise.resolve(docSnap(path)); },
       set: function (data, opt) {
-        if (opt && opt.merge && isObj(store[path])) merge(store[path], data, true); else store[path] = clone(data);
-        save(); notify(path); return Promise.resolve();
+        var next = clone(data);
+        if (opt && opt.merge && isObj(store.get(path))) { next = clone(store.get(path)); merge(next, data, true); }
+        var before = store.get(path);
+        store.set(path, next); notify(path);
+        return sb.from("docs").upsert({ path: path, data: next }).then(function (r) {
+          if (r.error) { if (before === undefined) store.delete(path); else store.set(path, before); notify(path); throw fail(r.error); }
+        });
       },
-      update: function (p) {
-        if (!isObj(store[path])) return Promise.reject(new Error("Eintrag nicht gefunden."));
-        merge(store[path], p, true); save(); notify(path); return Promise.resolve();
+      update: function (patch) {
+        var cur = store.get(path);
+        if (!isObj(cur)) return Promise.reject(fail({ message: "Eintrag nicht gefunden." }));
+        var next = clone(cur); merge(next, patch, true);
+        store.set(path, next); notify(path);
+        return sb.rpc("doc_update", { p_path: path, p_patch: patch }).then(function (r) {
+          if (r.error) { store.set(path, cur); notify(path); throw fail(r.error); }
+          if (r.data) { store.set(path, r.data); notify(path); }
+        });
       },
-      delete: function () { delete store[path]; save(); notify(path); return Promise.resolve(); },
+      delete: function () {
+        var before = store.get(path);
+        store.delete(path); notify(path);
+        return sb.from("docs").delete().eq("path", path).then(function (r) {
+          if (r.error) { if (before !== undefined) { store.set(path, before); notify(path); } throw fail(r.error); }
+        });
+      },
       onSnapshot: function (cb) { return sub("d", path, cb); }
     };
   }
@@ -1686,123 +1732,167 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   }
   var db = Object.freeze({ doc: docRef, collection: colRef });
 
-  /* ---------- Beispieldaten, immer rund um die aktuelle Woche ---------- */
-  function pad(n) { return (n < 10 ? "0" : "") + n; }
-  function ymd(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
-  function seed() {
-    var now = new Date(), iso = now.toISOString();
-    var t0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    var mon = new Date(t0); mon.setDate(t0.getDate() - ((t0.getDay() + 6) % 7));
-    function day(off) { var d = new Date(mon); d.setDate(mon.getDate() + off); return ymd(d); }
-    var today = ymd(t0), ord = {};
-    function slug(s) { return String(s).toLowerCase().replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue").replace(/ß/g, "ss").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 30); }
-    function item(off, kind, title, emoji, start, end, tags, extra) {
-      var date = off == null ? null : day(off);
-      var o = Object.assign({
-        kind: kind, title: title, emoji: emoji || "", date: date, start: start || null, end: end || null,
-        est: null, until: null, tags: tags || [], note: "", done: false, doneAt: null, attachments: [],
-        parent: null, createdAt: iso, updatedAt: iso, source: "test"
-      }, extra || {});
-      if (o.date && o.order == null) { ord[o.date] = (ord[o.date] || 0) + 1; o.order = ord[o.date]; }
-      if (o.done && !o.doneAt) o.doneAt = iso;
-      var id = (date || "x") + "-" + slug(title || emoji || kind) + "-" + Math.random().toString(36).slice(2, 6);
-      store["items/" + id] = o;
+  /* ---------- Laden und Abgleichen ---------- */
+  var lastSync = null;
+  async function loadAll() {
+    var rows = [];
+    for (var off = 0; ; off += 1000) {
+      var r = await sb.from("docs").select("path,data,updated_at").order("path").range(off, off + 999);
+      if (r.error) throw fail(r.error);
+      rows = rows.concat(r.data);
+      if (r.data.length < 1000) break;
     }
-    function past(off) { return day(off) < today; }
-
-    store["config/tags"] = { colors: {
-      Arbeit: "#E12300", Home: "#6E7A84", Me: "#FF6900", Sport: "#2F8FD6", Freunde: "#E0959B", Familie: "#6446A8",
-      Gesundheit: "#6FA85E", Geburtstag: "#D0557F", Essen: "#8BC4A8", Abo: "#D0457A", Wohnen: "#7E8890", Gehalt: "#3BAF5D", Kleidung: "#C056C8"
-    } };
-
-    for (var w = 0; w < 2; w++) {
-      var b = w * 7;
-      item(b + 0, "hinweis", w ? "Messe" : "Markt im Ort", "", null, null, ["Freunde"], { until: day(b + 1) });
-      item(b + 0, "fahrt", "Fahrt", "", "07:40", "08:10", []);
-      item(b + 0, "termin", "Team-Besprechung", "", "08:15", "09:15", ["Arbeit"]);
-      item(b + 0, "termin", "Projekt Nord", "", "09:30", "12:00", ["Arbeit"]);
-      item(b + 0, "termin", "Mittag mit Jana", "🥗", "12:15", "13:00", ["Freunde"]);
-      item(b + 0, "aufgabe", "Rechnungen prüfen", "🧾", "13:15", "13:45", ["Arbeit"], { est: 30, done: past(b + 0) });
-      item(b + 0, "termin", "Kundentermin", "", "14:00", "16:00", ["Arbeit"]);
-      item(b + 0, "fahrt", "Fahrt", "", "16:00", "16:30", []);
-      item(b + 0, "aktivitaet", "Spaziergang", "🚶", "18:00", "18:40", ["Me"]);
-      item(b + 1, "fahrt", "Fahrt", "", "09:25", "09:55", []);
-      item(b + 1, "termin", "Zahnarzt", "🦷", "10:00", "10:45", ["Gesundheit"]);
-      item(b + 1, "termin", "Büro", "", "11:15", "16:30", ["Arbeit"]);
-      item(b + 1, "aufgabe", "Einkaufen", "🛒", "17:00", "17:45", ["Home"], { est: 45, done: past(b + 1) });
-      item(b + 2, "termin", "Workshop", "", "09:00", "13:00", ["Arbeit"]);
-      item(b + 2, "notiz", "Ideen für den Urlaub", "💭", "13:30", null, ["Me"], { note: "- Ostsee oder Berge?\n- Zug oder Auto?" });
-      item(b + 2, "termin", "Yoga", "🧘", "18:30", "19:30", ["Sport"]);
-      item(b + 2, "aufgabe", "Paket abholen", "📦", null, null, ["Home"], { est: 15, done: past(b + 2) });
-      item(b + 3, "termin", "Büro", "", "08:00", "12:00", ["Arbeit"]);
-      item(b + 3, "termin", "Telefonat Bank", "📞", "13:00", "13:30", []);
-      item(b + 3, "aufgabe", "Steuerunterlagen sortieren", "📁", null, null, ["Home"], { est: 60 });
-      item(b + 4, "termin", "Büro", "", "08:00", "13:00", ["Arbeit"]);
-      item(b + 4, "aufgabe", "Wäsche", "🧺", null, null, ["Home"], { est: 60 });
-      item(b + 4, "termin", "Kino mit Tom", "🎬", "20:00", "22:30", ["Freunde"]);
-      item(b + 5, "termin", "Wochenmarkt", "🥕", "09:00", "10:30", ["Home"]);
-      item(b + 5, "hinweis", "Geburtstag Lisa", "🎂", null, null, ["Geburtstag"]);
-      item(b + 5, "aktivitaet", "Joggen", "🏃", "16:00", "16:45", ["Sport"]);
-      item(b + 6, "termin", "Brunch bei der Familie", "🥐", "11:00", "13:30", ["Familie"]);
-      item(b + 6, "aufgabe", "Woche planen", "📝", "18:00", "18:20", ["Me"], { est: 20 });
-      item(b + 0, "ausgabe", "Bäcker", "🥨", null, null, ["Essen"], { amount: -4.5 });
-      item(b + 2, "ausgabe", "Buch", "📖", null, null, ["Me"], { amount: -14.99 });
-    }
-    item(0, "aufgabe", "Pflanzen umtopfen", "🪴", null, null, ["Home"], { est: 30 });
-    item(1, "aufgabe", "Geschenk für Lisa", "🎁", null, null, ["Freunde"], { est: 20 });
-    item(3, "aufgabe", "Arzttermin vereinbaren", "📅", null, null, ["Gesundheit"], { est: 10 });
-    item(7, "ausgabe", "Gehalt", "💶", null, null, ["Gehalt"], { amount: 2500 });
-
-    function series(id, o) {
-      store["series/" + id] = Object.assign({ emoji: "", start: null, end: null, est: null, tags: [], note: "",
-        from: null, until: null, done: {}, skip: {}, ov: {}, createdAt: iso, updatedAt: iso, source: "test" }, o);
-    }
-    var vit = {}; for (var i = -14; i < 0; i++) { var dd = new Date(t0); dd.setDate(t0.getDate() + i); if (i !== -3) vit[ymd(dd)] = iso; }
-    series("s-vitamine", { kind: "habit", title: "Vitamine", emoji: "💊", est: 5, rule: { freq: "daily", interval: 1 }, anchor: day(-14), done: vit });
-    series("s-sport", { kind: "termin", title: "Sport", emoji: "🏋️", start: "19:00", end: "20:00", tags: ["Sport"], rule: { freq: "weekly", interval: 1, byday: [2, 4] }, anchor: day(-14) });
-    series("s-saugen", { kind: "habit", title: "Staubsaugen", emoji: "🧹", est: 30, tags: ["Home"], rule: { freq: "weekly", interval: 1, byday: [6] }, anchor: day(-8) });
-    series("s-blumen", { kind: "habit", title: "Blumen gießen", emoji: "💧", est: 10, tags: ["Home"], rule: { freq: "daily", interval: 3 }, anchor: day(-6) });
-    series("a-musik", { kind: "ausgabe", title: "Musik-Abo", emoji: "🎵", amount: -10.99, tags: ["Abo"], rule: { freq: "monthly", interval: 1, bymonthday: 5 }, anchor: day(-40) });
-    series("a-miete", { kind: "ausgabe", title: "Miete", emoji: "🏠", amount: -800, tags: ["Wohnen"], rule: { freq: "monthly", interval: 1, bymonthday: 1 }, anchor: day(-40) });
-
-    var syms = ["cloudy", "overcast", "rain", "showers", "fewclouds", "fewclouds", "sun", "cloudy", "rain", "overcast", "fewclouds", "sun", "showers", "cloudy"];
-    for (var k = 0; k < 14; k++) {
-      var mx = 6 + ((k * 5) % 7);
-      store["weather/" + day(k)] = { date: day(k), max: mx, min: mx - 5, sym: syms[k],
-        hours: { "9": { t: mx - 3, sym: syms[k] }, "12": { t: mx - 1, sym: syms[k] }, "15": { t: mx, sym: syms[k] }, "18": { t: mx - 2, sym: syms[k] } },
-        src: "Beispiel", at: iso };
-    }
-    for (var j = -7; j <= 0; j++) {
-      var dj = new Date(t0); dj.setDate(t0.getDate() + j);
-      store["days/" + ymd(dj)] = { wake: "06:" + pad(20 + ((j + 7) * 4) % 30), bed: j < 0 ? "22:" + pad(30 + ((j + 7) * 7) % 25) : null, source: "test", updatedAt: iso };
-    }
-    store["books/b-sternenkarte"] = { title: "Die Sternenkarte", series: "", author: "A. Muster", pages: 420, format: "ebook", status: "reading",
-      start: day(-10), end: null, cover: null, blurb: "Beispielbuch für die Testfassung.", blurbBy: "claude", link: "", note: "", createdAt: iso, updatedAt: iso, source: "test" };
-    store["track/" + today] = { date: today, water: 3, coffee: 1, print: "b-sternenkarte", audio: null, updatedAt: iso };
-    store["config/work"] = { soll: 160 };
-    save();
+    store.clear();
+    rows.forEach(function (x) { store.set(x.path, x.data); if (!lastSync || x.updated_at > lastSync) lastSync = x.updated_at; });
   }
-  if (!store["config/tags"]) seed();
-
-  /* Anhänge (Fotos, Handschrift): im Browser-Speicher, ausgeliefert vom Service Worker unter _blob/<id> */
-  var assets = null;
-  if ("caches" in window && "serviceWorker" in navigator) {
-    try { navigator.serviceWorker.register("sw.js"); } catch (e) {}
-    assets = Object.freeze({
-      upload: function (blob, opt) {
-        var id = "t" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-        var type = (opt && opt.type) || blob.type || "application/octet-stream";
-        var url = new URL("_blob/" + id, location.href).href;
-        return caches.open("planer-blobs").then(function (c) {
-          return c.put(url, new Response(blob, { headers: { "Content-Type": type } }));
-        }).then(function () { return { id: id, contentType: type, sizeBytes: blob.size }; });
+  async function resync() {
+    try {
+      var since = lastSync || "1970-01-01T00:00:00Z";
+      var changed = [];
+      for (var off = 0; ; off += 1000) {
+        var r = await sb.from("docs").select("path,data,updated_at").gt("updated_at", since).order("path").range(off, off + 999);
+        if (r.error) return;
+        changed = changed.concat(r.data);
+        if (r.data.length < 1000) break;
       }
+      changed.forEach(function (x) { store.set(x.path, x.data); notify(x.path); if (!lastSync || x.updated_at > lastSync) lastSync = x.updated_at; });
+      var paths = new Set();
+      for (var o2 = 0; ; o2 += 1000) {
+        var p = await sb.from("docs").select("path").order("path").range(o2, o2 + 999);
+        if (p.error) return;
+        p.data.forEach(function (x) { paths.add(x.path); });
+        if (p.data.length < 1000) break;
+      }
+      Array.from(store.keys()).forEach(function (k) { if (!paths.has(k)) { store.delete(k); notify(k); } });
+    } catch (e) { /* beim nächsten Mal */ }
+  }
+  function live() {
+    sb.channel("docs-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "docs" }, function (p) {
+        if (p.eventType === "DELETE") {
+          var path = p.old && p.old.path;
+          if (path && store.has(path)) { store.delete(path); notify(path); }
+        } else if (p.new && p.new.path) {
+          store.set(p.new.path, p.new.data); notify(p.new.path);
+          if (p.new.updated_at && (!lastSync || p.new.updated_at > lastSync)) lastSync = p.new.updated_at;
+        }
+      })
+      .subscribe(function (status) { if (status === "SUBSCRIBED" && started) resync(); });
+    var hiddenAt = 0;
+    document.addEventListener("visibilitychange", function () {
+      if (document.hidden) { hiddenAt = Date.now(); return; }
+      if (hiddenAt && Date.now() - hiddenAt > 20000) { resync(); refreshSigned(); }
     });
   }
 
-  window.claude = Object.freeze({
-    use: function (name) { return Promise.resolve(name === "db" ? db : name === "assets" ? assets : null); }
+  /* ---------- Anhänge ---------- */
+  var urls = new Map(), signedAt = 0, want = new Set(), wantTimer = null;
+  async function listNames() {
+    var names = [];
+    for (var off = 0; ; off += 1000) {
+      var r = await sb.storage.from(BUCKET).list("", { limit: 1000, offset: off, sortBy: { column: "name", order: "asc" } });
+      if (r.error) throw fail(r.error);
+      r.data.forEach(function (o) { if (o.id) names.push(o.name); });
+      if (r.data.length < 1000) break;
+    }
+    return names;
+  }
+  async function sign(names) {
+    for (var i = 0; i < names.length; i += 300) {
+      var r = await sb.storage.from(BUCKET).createSignedUrls(names.slice(i, i + 300), SIGN_SECS);
+      if (!r.error && r.data) r.data.forEach(function (d) { if (d.signedUrl && d.path) urls.set(d.path, d.signedUrl); });
+    }
+  }
+  async function signAll() { await sign(await listNames()); signedAt = Date.now(); }
+  function refreshSigned() { if (Date.now() - signedAt > 24 * 3600 * 1000) signAll().then(function () { notify("*"); }, function () {}); }
+  window.__blobUrl = function (id) {
+    if (!id) return "";
+    var u = urls.get(id);
+    if (u) return u;
+    want.add(id);
+    if (!wantTimer) wantTimer = setTimeout(function () {
+      wantTimer = null;
+      var ids = Array.from(want); want.clear();
+      sign(ids).then(function () { if (ids.some(function (x) { return urls.has(x); })) notify("*"); });
+    }, 60);
+    return "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==";
+  };
+  function newId() {
+    if (window.crypto && crypto.randomUUID) return crypto.randomUUID().replace(/-/g, "");
+    var a = new Uint8Array(16); crypto.getRandomValues(a);
+    return Array.from(a).map(function (b) { return (b < 16 ? "0" : "") + b.toString(16); }).join("");
+  }
+  var assets = Object.freeze({
+    upload: function (blob, opt) {
+      var id = newId(), type = (opt && opt.type) || blob.type || "application/octet-stream";
+      return sb.storage.from(BUCKET).upload(id, blob, { contentType: type, upsert: false }).then(function (r) {
+        if (r.error) throw fail(r.error);
+        return sb.storage.from(BUCKET).createSignedUrl(id, SIGN_SECS);
+      }).then(function (r) {
+        if (r && r.data && r.data.signedUrl) urls.set(id, r.data.signedUrl);
+        return { id: id, contentType: type, sizeBytes: blob.size };
+      });
+    }
   });
+
+  /* ---------- Anmeldung ---------- */
+  function loginBox(msg) {
+    return new Promise(function (resolve) {
+      var w = document.createElement("div");
+      w.id = "sbLogin";
+      w.innerHTML =
+        '<form class="sbl-card" autocomplete="on">' +
+        '<h1>Planer</h1>' +
+        '<label>E-Mail<input name="email" type="email" autocomplete="username" required></label>' +
+        '<label>Passwort<input name="password" type="password" autocomplete="current-password" required></label>' +
+        '<button type="submit">Anmelden</button>' +
+        '<p class="sbl-msg"></p>' +
+        '</form>';
+      document.body.appendChild(w);
+      var f = w.querySelector("form"), m = w.querySelector(".sbl-msg"), b = w.querySelector("button");
+      if (msg) m.textContent = msg;
+      f.addEventListener("submit", function (e) {
+        e.preventDefault();
+        b.disabled = true; m.textContent = "";
+        sb.auth.signInWithPassword({ email: f.email.value.trim(), password: f.password.value }).then(function (r) {
+          b.disabled = false;
+          if (r.error) { m.textContent = "Das hat nicht geklappt. Prüf E-Mail und Passwort."; return; }
+          w.remove(); resolve(r.data.session);
+        });
+      });
+      setTimeout(function () { try { f.email.focus(); } catch (e) {} }, 50);
+    });
+  }
+  function banner(text) {
+    var d = document.createElement("div"); d.id = "sbBanner"; d.textContent = text;
+    document.body.appendChild(d);
+  }
+
+  var started = false;
+  var ready = (async function () {
+    var s = (await sb.auth.getSession()).data.session;
+    if (!s) s = await loginBox();
+    var own = await sb.rpc("is_owner");
+    if (own.error || own.data !== true) {
+      banner(own.error ? "Keine Verbindung zu Supabase. Lade die Seite neu." : "Dieses Konto hat keinen Zugriff auf den Planer.");
+      return null;
+    }
+    await loadAll();
+    try { await signAll(); } catch (e) { /* Anhänge später */ }
+    started = true;
+    live();
+    sb.auth.onAuthStateChange(function (ev) { if (ev === "SIGNED_OUT") location.reload(); });
+    return db;
+  })().catch(function (e) { console.error(e); banner("Der Planer ließ sich nicht laden: " + (e && e.message ? e.message : e)); return null; });
+
+  window.claude = Object.freeze({
+    use: function (name) {
+      if (name === "db") return ready;
+      if (name === "assets") return ready.then(function (d) { return d ? assets : null; });
+      return Promise.resolve(null);
+    }
+  });
+  window.planerAbmelden = function () { return sb.auth.signOut(); };
 })();
 </script>
 <script>
@@ -2033,7 +2123,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   var eq = 229.18 * (75e-6 + .001868 * Math.cos(g) - .032077 * Math.sin(g) - .014615 * Math.cos(2 * g) - .040849 * Math.sin(2 * g));
   var de = .006918 - .399912 * Math.cos(g) + .070257 * Math.sin(g) - .006758 * Math.cos(2 * g) + 907e-6 * Math.sin(2 * g) - .002697 * Math.cos(3 * g) + .00148 * Math.sin(3 * g);
   var ha = Math.acos(Math.cos(90.833 * Math.PI / 180) / (Math.cos(lat) * Math.cos(de)) - Math.tan(lat) * Math.tan(de)) * 180 / Math.PI;
-  var noon = 720 - 4 * 8.377 - eq - new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12).getTimezoneOffset();
+  var noon = 720 - 4 * 8.682 - eq - new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12).getTimezoneOffset();
   return SUN[ds] = {
    rise: noon - 4 * ha,
    set: noon + 4 * ha
@@ -2144,6 +2234,9 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   d.setAttribute("aria-hidden", "true");
   return d;
  }
+ function BRN() {
+  return S.work && S.work.branch || "Filiale";
+ }
  var WORK_CATS = [ {
   k: "buero",
   n: "Büro",
@@ -2151,7 +2244,9 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   tag: "Fahrschule"
  }, {
   k: "beyza",
-  n: "Filiale",
+  get n() {
+   return BRN();
+  },
   g: "w",
   tag: "Fahrschule"
  }, {
@@ -2200,7 +2295,9 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
  } ];
  var WORK_GRP = {
   w: {
-   n: "Fsd./Filiale",
+   get n() {
+    return "Fsd./" + BRN();
+   },
    tag: "Fahrschule"
   },
   t: {
@@ -2245,7 +2342,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   if (has("lkw")) return "fs_lkw";
   if (has("motorrad")) return "fs_mot";
   if (/^büro\b/.test(tl)) return "buero";
-  if (/beyza/.test(tl) && has("fahrschule")) return "beyza";
+  if (BRN() && tl.indexOf(BRN().toLowerCase()) >= 0 && has("fahrschule")) return "beyza";
   if (has("fahrschule") || has("bgq")) return "fs_sonst";
   return null;
  }
@@ -2354,7 +2451,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
    });
   }
   if (!days.length) {
-   body.append(el("p", "mv-empty", "In diesem Monat stehen keine Termine für Büro, Filiale, Fahrstunden oder Theorie im Planer."));
+   body.append(el("p", "mv-empty", "In diesem Monat stehen keine Termine für Büro, " + BRN() + ", Fahrstunden oder Theorie im Planer."));
    return;
   }
   var future = r.first > t, split = !future && (all.w !== past.w || all.t !== past.t);
@@ -2376,7 +2473,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
    var r = Math.round(m / 45 * 100);
    return r > 0 ? "pos" : r < 0 ? "neg" : "";
   };
-  sum.append(tile("Fsd./Filiale", fmtStd(main.w) + " Std.", subOf("w"), null, WORK_GRP.w.tag), tile("Theorie", fmtStd(main.t) + " Std.", subOf("t"), null, WORK_GRP.t.tag), tile("Gesamt", fmtStd(totMain) + " Std.", "Soll " + fmtStd(sollMin) + " Std." + (split ? " · mit Geplantem " + fmtStd(totAll) : "")), tile(future ? "Plus/Minus geplant" : split ? "Plus/Minus bis heute" : "Plus/Minus", fmtSigned(diff) + " Std.", split ? "mit Geplantem " + fmtSigned(diffAll) + " Std." : future ? "zum Soll, nach Planung" : "zum Soll im ganzen Monat", sgn(diff)));
+  sum.append(tile("Fsd./" + BRN() + "", fmtStd(main.w) + " Std.", subOf("w"), null, WORK_GRP.w.tag), tile("Theorie", fmtStd(main.t) + " Std.", subOf("t"), null, WORK_GRP.t.tag), tile("Gesamt", fmtStd(totMain) + " Std.", "Soll " + fmtStd(sollMin) + " Std." + (split ? " · mit Geplantem " + fmtStd(totAll) : "")), tile(future ? "Plus/Minus geplant" : split ? "Plus/Minus bis heute" : "Plus/Minus", fmtSigned(diff) + " Std.", split ? "mit Geplantem " + fmtSigned(diffAll) + " Std." : future ? "zum Soll, nach Planung" : "zum Soll im ganzen Monat", sgn(diff)));
   body.append(sum);
   var scale = Math.max(sollMin, totAll, 1), bar = el("div", "hv-bar"), raw = 0;
   WORK_CATS.forEach(function(c) {
@@ -2431,7 +2528,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   var cell = function(m) {
    return el("td", "num" + (m ? "" : " zero"), m ? fmtStd(m) : "–");
   };
-  [ [ "w", "Fsd./Filiale" ], [ "t", "Theorie" ] ].forEach(function(g) {
+  [ [ "w", "Fsd./" + BRN() + "" ], [ "t", "Theorie" ] ].forEach(function(g) {
    var gr = el("tr", "grp"), gc = el("td", null, g[1]);
    gc.colSpan = split ? 3 : 2;
    gr.append(gc);
@@ -2459,7 +2556,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   var sec2 = el("section", "mv-sec");
   sec2.append(el("p", "panel-sub", "Nach Tagen"));
   var wrap2 = el("div", "hv-wrap"), tab2 = el("table", "hv-tab");
-  var h2 = el("tr"), hw = el("th", "num", "Fsd./Filiale"), ht = el("th", "num", "Theorie");
+  var h2 = el("tr"), hw = el("th", "num", "Fsd./" + BRN() + ""), ht = el("th", "num", "Theorie");
   hw.prepend(swatch(WORK_GRP.w.tag));
   ht.prepend(swatch(WORK_GRP.t.tag));
   h2.append(el("th", null, "Tag"), hw, ht);
@@ -2471,7 +2568,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
    var tr = el("tr", "day" + (x.ds > t ? " plan" : ""));
    tr.append(el("td", null, shortDate(x.ds) + (x.ds > t ? " · geplant" : "")), cell(x.wd.w), cell(x.wd.t));
    tr.tabIndex = 0;
-   tr.setAttribute("aria-label", longDate(x.ds) + ": Fsd./Filiale " + fmtStd(x.wd.w) + ", Theorie " + fmtStd(x.wd.t) + " Stunden – Tag öffnen");
+   tr.setAttribute("aria-label", longDate(x.ds) + ": Fsd./" + BRN() + " " + fmtStd(x.wd.w) + ", Theorie " + fmtStd(x.wd.t) + " Stunden – Tag öffnen");
    var open = function() {
     closeHours();
     setView("day", x.ds);
@@ -2489,7 +2586,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   wrap2.append(tab2);
   sec2.append(wrap2);
   body.append(sec2);
-  body.append(el("p", "hv-note", "Eine Stunde sind 45 Minuten, Soll " + fmtStd(sollMin) + " Std. im Monat. Gezählt werden Termine: alles mit Tag Fahrschule (Büro, Filiale, Service-Termine …), Fahrstunden (Tag LKW oder Motorrad), Prüfungen und Theorie (BGQ-Termine und Titel, die mit „Thema“, „TH“ oder „Theorie“ beginnen). Aufgaben und Fahrten zählen nicht, Überschneidungen in den Summen nur einmal."));
+  body.append(el("p", "hv-note", "Eine Stunde sind 45 Minuten, Soll " + fmtStd(sollMin) + " Std. im Monat. Gezählt werden Termine: alles mit Tag Fahrschule (Büro, " + BRN() + ", Service-Termine …), Fahrstunden (Tag LKW oder Motorrad), Prüfungen und Theorie (BGQ-Termine und Titel, die mit „Thema“, „TH“ oder „Theorie“ beginnen). Aufgaben und Fahrten zählen nicht, Überschneidungen in den Summen nur einmal."));
  }
  function plannedMin(list) {
   var iv = [], loose = 0;
@@ -4932,7 +5029,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   box.hidden = !box.childNodes.length;
  }
  function blobUrl(id) {
-  return "_blob/" + id;
+  return window.__blobUrl(id);
  }
  function isImg(a) {
   return /^image\//.test(a.type || "");
@@ -7998,7 +8095,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   var c = el("div", "bk-cover" + (lg ? " lg" : "") + (isAudio(b) ? " sq" : ""));
   if (b.cover) {
    var im = el("img");
-   im.src = "_blob/" + b.cover;
+   im.src = blobUrl(b.cover);
    im.alt = "Cover: " + (b.title || "");
    im.loading = "lazy";
    im.decoding = "async";

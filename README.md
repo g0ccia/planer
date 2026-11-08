@@ -1,6 +1,6 @@
-# Planer – Testfassung
+# Planer
 
-Eigenständige Fassung des Planers als Web-App, zum Ausprobieren auf dem Handy (vorne und aufgeklappt).
+Eigenständige Fassung des Planers als Web-App. Daten und Anhänge liegen in Supabase (Frankfurt), Anmeldung mit E-Mail und Passwort.
 
-- Enthält nur erfundene Beispieldaten. Was man einträgt, bleibt im Browser des Geräts.
-- Adresse mit `#reset` am Ende stellt die Beispieldaten wieder her.
+- `/` – der Planer
+- `/test/` – Testfassung mit erfundenen Beispieldaten (Adresse mit `#reset` stellt sie wieder her)
