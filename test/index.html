@@ -10628,17 +10628,17 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   habit: "habit",
   handschrift: "ink"
  };
- function runHash(tries) {
+ function runHash(tries, forced) {
   var key = (location.hash || "").replace(/^#/, "").toLowerCase();
-  var act = HASH_ACTS[key];
+  var act = forced || HASH_ACTS[key];
   if (!act) return;
   if (!S.loaded || !S.db || act === "ink" && !S.assets) {
    if ((tries || 0) < 40 && S.status !== "nodb" && S.status !== "error") setTimeout(function() {
-    runHash((tries || 0) + 1);
+    runHash((tries || 0) + 1, forced);
    }, 150);
    return;
   }
-  try {
+  if (!forced) try {
    history.replaceState(null, "", location.pathname + location.search);
   } catch (e) {}
   if (!$("#scrim").hidden || !$("#ink").hidden) return;
@@ -10666,6 +10666,21 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
  window.addEventListener("hashchange", function() {
   runHash(0);
  });
+ var PEND_LAST = "";
+ try {
+  PEND_LAST = localStorage.getItem("planer.pend") || "";
+ } catch (e) {}
+ function checkPending(p) {
+  if (!p || !p.act || !p.at || !HASH_ACTS[p.act]) return;
+  var key = p.act + "@" + p.at, age = Date.now() - new Date(p.at).getTime();
+  if (key === PEND_LAST || !(age > -12e4 && age < 12e4)) return;
+  PEND_LAST = key;
+  try {
+   localStorage.setItem("planer.pend", key);
+  } catch (e) {}
+  if (S.db) S.db.doc("config/pending").delete().catch(function() {});
+  runHash(0, HASH_ACTS[p.act]);
+ }
  render();
  (async function connect() {
   var db = null;
@@ -10749,6 +10764,9 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
    });
    S.wx = m;
    if (S.loaded && !busy()) render();
+  }, function() {});
+  db.doc("config/pending").onSnapshot(function(d) {
+   checkPending(d && d.exists ? d.data() : null);
   }, function() {});
   db.doc("config/work").onSnapshot(function(d) {
    S.work = d.exists ? d.data() : null;
