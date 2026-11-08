@@ -125,6 +125,10 @@ body {
 }
 button { font: inherit; color: inherit; cursor: pointer; }
 .dash { display: none; }
+.leaves { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; opacity: 0.24; }
+.leaves svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .leaves { opacity: 0.2; } }
+:root[data-theme="dark"] .leaves { opacity: 0.2; }
 @media (min-width: 960px) {
   html.v-day { --dl: max(0px, (100vw - 1180px) / 2); --dw: calc(min(100vw, 1180px) - 620px); }
   html.v-day .page { max-width: 1180px; padding-left: calc(var(--dw) + 16px); }
@@ -265,17 +269,17 @@ h1 { margin: 2px 0 0; font: 600 26px/1.05 var(--f-serif); color: var(--fg); }
 .hint .nicon { width: 9px; height: 9px; }
 .wx {
   display: inline-flex; align-items: baseline; gap: 0; white-space: nowrap;
-  font: 600 11px/1 var(--f-cond); letter-spacing: 0.02em; text-transform: none;
+  font: 600 13px/1 var(--f-cond); letter-spacing: 0.02em; text-transform: none;
   color: var(--fg-soft); font-variant-numeric: tabular-nums;
 }
-.wx i { font-style: normal; font-size: 11px; margin-right: 3px; }
+.wx i { font-style: normal; font-size: 14px; margin-right: 3px; }
 .wx .lo { font-weight: 500; color: var(--muted); }
 .hwx {
-  position: absolute; left: 0; width: 14px; transform: translateY(-3px);
+  position: absolute; left: 0; width: 18px; transform: translateY(-4px);
   display: flex; flex-direction: column; align-items: center; pointer-events: none;
 }
-.hwx i, .wk-wx i { font-style: normal; font-size: 9px; line-height: 10px; }
-.hwx b, .wk-wx b { font: 600 8.5px/9px var(--f-cond); color: var(--fg-soft); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.hwx i, .wk-wx i { font-style: normal; font-size: 11.5px; line-height: 12px; }
+.hwx b, .wk-wx b { font: 600 10px/11px var(--f-cond); color: var(--fg-soft); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .tally {
   font: 500 12px/1.2 var(--f-cond); letter-spacing: 0.06em; color: var(--fg-soft);
   font-variant-numeric: tabular-nums;
@@ -1112,8 +1116,8 @@ body::before {
 .wk-day.is-today .num { background: var(--red); color: var(--on-accent); }
 .wk-dn { display: flex; align-items: center; justify-content: center; gap: 2px; max-width: 100%; }
 .wk-wx { display: flex; flex-direction: column; align-items: center; }
-.wk-wx i { font-size: 8px; line-height: 9px; }
-.wk-wx b { font-size: 8px; line-height: 8px; }
+.wk-wx i { font-size: 10.5px; line-height: 11px; }
+.wk-wx b { font-size: 9.5px; line-height: 10px; }
 .wk-all { border-bottom: 1px solid var(--line-strong); }
 .wk-all > div { min-width: 0; padding: 3px 1px 4px 2px; display: flex; flex-direction: column; gap: 2px; border-left: 1px solid var(--line); }
 .wk-all > div:first-child { border-left: 0; }
@@ -1481,6 +1485,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
 </head>
 <body>
 
+<div class="leaves" id="leaves" aria-hidden="true"></div>
 <div class="page">
   <header class="head">
     <div class="head-row">
@@ -3184,6 +3189,41 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   renderBooks();
   renderDash();
  }
+ var LEAF_D = [ "M0-10 2-5 5-7 4-2 9-3 6 1 8 3 3 3 2 6 .6 4 .6 10-.6 10-.6 4-2 6-3 3-8 3-6 1-9-3-4-2-5-7-2-5Z", "M0-10C7-7 7 5 0 10-7 5-7-7 0-10Z", "M0-11C4-6 4 6 0 11-4 6-4-6 0-11Z" ];
+ var LEAF_C = [ "#C2562B", "#D9902F", "#9B2A24", "#B8742E", "#8C4A2B" ];
+ function drawLeaves() {
+  var host = $("#leaves");
+  if (!host) return;
+  var mo = (new Date).getMonth();
+  if (mo < 8 || mo > 10) {
+   host.replaceChildren();
+   host.dataset.k = "";
+   return;
+  }
+  var W = window.innerWidth, H = window.innerHeight, key = W + "x" + H;
+  if (!W || !H || host.dataset.k === key) return;
+  host.dataset.k = key;
+  var seed = 20261108, rnd = function() {
+   seed = seed * 1664525 + 1013904223 >>> 0;
+   return seed / 4294967296;
+  };
+  var n = Math.max(8, Math.min(22, Math.round(W * H / 55e3)));
+  var out = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + W + " " + H + '" preserveAspectRatio="none">';
+  for (var k = 0; k < n; k++) {
+   var edge = rnd() < .6, side = rnd() < .5;
+   var x = edge ? (side ? rnd() * .16 : .84 + rnd() * .16) * W : rnd() * W;
+   var y = rnd() * H, sz = .8 + rnd() * 1.2, rot = Math.round(rnd() * 360);
+   var di = Math.floor(rnd() * LEAF_D.length), c = LEAF_C[Math.floor(rnd() * LEAF_C.length)], o = (.55 + rnd() * .45).toFixed(2);
+   out += '<g transform="translate(' + x.toFixed(1) + " " + y.toFixed(1) + ") rotate(" + rot + ") scale(" + sz.toFixed(2) + ')">' + '<path d="' + LEAF_D[di] + '" fill="' + c + '" fill-opacity="' + o + '"/>' + (di ? '<path d="M0-8V13" fill="none" stroke="#000" stroke-opacity=".28" stroke-width=".8"/>' : "") + "</g>";
+  }
+  host.innerHTML = out + "</svg>";
+ }
+ drawLeaves();
+ var leafTimer = null;
+ window.addEventListener("resize", function() {
+  clearTimeout(leafTimer);
+  leafTimer = setTimeout(drawLeaves, 250);
+ });
  var DASH_MQ = window.matchMedia ? window.matchMedia("(min-width: 960px)") : null;
  var DASH = {
   pick: {},
