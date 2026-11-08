@@ -1784,8 +1784,24 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   }
   if (!store["config/tags"]) seed();
 
+  /* Anhänge (Fotos, Handschrift): im Browser-Speicher, ausgeliefert vom Service Worker unter _blob/<id> */
+  var assets = null;
+  if ("caches" in window && "serviceWorker" in navigator) {
+    try { navigator.serviceWorker.register("sw.js"); } catch (e) {}
+    assets = Object.freeze({
+      upload: function (blob, opt) {
+        var id = "t" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+        var type = (opt && opt.type) || blob.type || "application/octet-stream";
+        var url = new URL("_blob/" + id, location.href).href;
+        return caches.open("planer-blobs").then(function (c) {
+          return c.put(url, new Response(blob, { headers: { "Content-Type": type } }));
+        }).then(function () { return { id: id, contentType: type, sizeBytes: blob.size }; });
+      }
+    });
+  }
+
   window.claude = Object.freeze({
-    use: function (name) { return Promise.resolve(name === "db" ? db : null); }
+    use: function (name) { return Promise.resolve(name === "db" ? db : name === "assets" ? assets : null); }
   });
 })();
 </script>
@@ -4916,7 +4932,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   box.hidden = !box.childNodes.length;
  }
  function blobUrl(id) {
-  return "/_blob/" + id;
+  return "_blob/" + id;
  }
  function isImg(a) {
   return /^image\//.test(a.type || "");
@@ -7982,7 +7998,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   var c = el("div", "bk-cover" + (lg ? " lg" : "") + (isAudio(b) ? " sq" : ""));
   if (b.cover) {
    var im = el("img");
-   im.src = "/_blob/" + b.cover;
+   im.src = "_blob/" + b.cover;
    im.alt = "Cover: " + (b.title || "");
    im.loading = "lazy";
    im.decoding = "async";
