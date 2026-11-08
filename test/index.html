@@ -2155,6 +2155,108 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   var at = w.at ? new Date(w.at) : null;
   return "Vorhersage" + (at && !isNaN(at) ? " vom " + pad(at.getDate()) + "." + pad(at.getMonth() + 1) + ". " + pad(at.getHours()) + ":" + pad(at.getMinutes()) : "") + (w.src ? " · " + w.src : "");
  }
+ var WXA = {
+  busy: false,
+  at: 0
+ };
+ function wmoSym(c) {
+  if (!isNum(c)) return null;
+  if (c >= 95) return "thunder";
+  if (c >= 71 && c <= 77 || c === 85 || c === 86) return "snow";
+  if (c >= 61 && c <= 67) return "rain";
+  if (c >= 51 && c <= 57 || c >= 80 && c <= 82) return "showers";
+  if (c === 45 || c === 48) return "fog";
+  return [ "sun", "fewclouds", "cloudy", "overcast" ][Math.min(3, Math.max(0, c))];
+ }
+ function wmoDay(codes) {
+  var c = codes.filter(isNum);
+  if (!c.length) return null;
+  var n = function(f) {
+   return c.filter(f).length;
+  };
+  if (n(function(x) {
+   return x >= 95;
+  })) return "thunder";
+  if (n(function(x) {
+   return x >= 71 && x <= 77 || x === 85 || x === 86;
+  }) >= 2) return "snow";
+  var wet = n(function(x) {
+   return x >= 51 && x <= 67 || x >= 80 && x <= 82;
+  });
+  if (wet >= 4) return "rain";
+  if (wet >= 1) return "showers";
+  if (n(function(x) {
+   return x === 45 || x === 48;
+  }) >= 4) return "fog";
+  var cl = c.filter(function(x) {
+   return x <= 3;
+  });
+  var avg = cl.length ? cl.reduce(function(a, b) {
+   return a + b;
+  }, 0) / cl.length : 3;
+  return [ "sun", "fewclouds", "cloudy", "overcast" ][Math.round(avg)];
+ }
+ function wxAuto(force) {
+  if (!S.db || !S.loaded || WXA.busy || document.hidden) return;
+  var now = Date.now(), tw = S.wx.get(today()), last = tw && tw.at && /^Open-Meteo/.test(tw.src || "") ? new Date(tw.at).getTime() : 0;
+  if (!force && (now - WXA.at < 55 * 6e4 || last && now - last < 55 * 6e4)) return;
+  WXA.busy = true;
+  S.db.doc("config/wx").get().then(function(snap) {
+   var c = snap && snap.exists ? snap.data() : null;
+   if (!c || !isNum(c.lat) || !isNum(c.lon)) return null;
+   var u = "https://api.open-meteo.com/v1/forecast?latitude=" + c.lat + "&longitude=" + c.lon + "&hourly=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min" + "&timezone=Europe%2FBerlin&forecast_days=8";
+   return fetch(u, {
+    cache: "no-store"
+   }).then(function(r) {
+    if (!r.ok) throw new Error("Wetter " + r.status);
+    return r.json();
+   });
+  }).then(function(j) {
+   if (!j || !j.daily || !j.hourly) return;
+   var at = (new Date).toISOString(), t0 = today(), days = {}, dayCodes = {};
+   (j.daily.time || []).forEach(function(ds, k) {
+    var mx = j.daily.temperature_2m_max[k], mn = j.daily.temperature_2m_min[k];
+    if (ds < t0 || !isNum(mx)) return;
+    days[ds] = {
+     date: ds,
+     max: Math.round(mx),
+     min: isNum(mn) ? Math.round(mn) : null,
+     sym: wmoSym(j.daily.weather_code[k]),
+     src: "Open-Meteo (DWD)",
+     at: at
+    };
+    dayCodes[ds] = [];
+   });
+   (j.hourly.time || []).forEach(function(tt, k) {
+    var ds = tt.slice(0, 10), h = Number(tt.slice(11, 13)), tv = j.hourly.temperature_2m[k], wc = j.hourly.weather_code[k];
+    if (!days[ds]) return;
+    if (h >= 8 && h <= 19) dayCodes[ds].push(wc);
+    if (WX_HOURS.indexOf(h) < 0 || !isNum(tv)) return;
+    (days[ds].hours = days[ds].hours || {})[String(h)] = {
+     t: Math.round(tv),
+     sym: wmoSym(wc)
+    };
+   });
+   return Promise.all(Object.keys(days).map(function(ds) {
+    var d = days[ds], ds2 = wmoDay(dayCodes[ds]);
+    if (ds2) d.sym = ds2;
+    if (!d.sym) delete d.sym;
+    return S.db.doc("weather/" + ds).set(d, {
+     merge: true
+    });
+   }));
+  }).then(function() {
+   WXA.at = Date.now();
+  }, function() {
+   WXA.at = Date.now() - 45 * 6e4;
+  }).then(function() {
+   WXA.busy = false;
+  });
+ }
+ document.addEventListener("visibilitychange", function() {
+  if (!document.hidden) setTimeout(wxAuto, 1500);
+ });
+ setInterval(wxAuto, 5 * 6e4);
  function wxStack(name, hour, h, ds) {
   if (!h || !isNum(h.t)) return null;
   var s = sunOf(ds), night = hour != null && (hour * 60 < s.rise || hour * 60 > s.set);
@@ -10560,6 +10662,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
      placeTray();
      runHash(0);
     });
+    setTimeout(wxAuto, 2500);
    }
   };
   db.collection("items").onSnapshot(function(snap) {
