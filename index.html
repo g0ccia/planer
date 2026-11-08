@@ -1268,6 +1268,15 @@ body::before {
 }
 .spill b { font: 600 9.5px/1.35 var(--f-cond); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
 .spill.down { border-top: 1px dashed var(--line-strong); margin-top: 6px; }
+.spill.night { align-items: center; }
+.night-tg { margin-left: auto; padding-left: 8px; font: 600 9.5px/1.35 var(--f-cond); letter-spacing: 0.12em; text-transform: uppercase; color: var(--orange); white-space: nowrap; }
+.wk-night {
+  display: grid; grid-template-columns: var(--hl) repeat(7, minmax(0, 1fr)); align-items: center;
+  width: 100%; margin: 0; padding: 4px 0; border: 0; border-bottom: 1px dashed var(--line-strong);
+  background: var(--bg); color: var(--fg-soft); text-align: left;
+}
+.wk-night .wn-ic { font: 600 10px/1 var(--f-cond); color: var(--orange); text-align: center; white-space: nowrap; }
+.wk-night .wn-c { min-width: 0; padding-left: 4px; font: 500 10px/1.2 var(--f-cond); letter-spacing: 0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
 .spill.up { border-bottom: 1px dashed var(--line-strong); margin-bottom: 4px; }
 .spill i { font-style: normal; color: var(--muted); }
 .cyc { --cc: var(--cyc-lut); display: inline-block; flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--cc); }
@@ -3557,6 +3566,55 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   });
   return out;
  }
+ var NIGHT_END = 240;
+ function isNight(i, baseH) {
+  if (!i || !i.start || i.kind === "hinweis" || i.kind === "ausgabe") return false;
+  var m = toMin(i.start);
+  return m < NIGHT_END && m < baseH * 60;
+ }
+ function byStart(a, b) {
+  return toMin(a.start) - toMin(b.start);
+ }
+ function nightToggle() {
+  S.nightOpen = !S.nightOpen;
+  render();
+ }
+ function nightRow(list, shut) {
+  var b = el("button", "spill up night");
+  b.type = "button";
+  b.append(el("b", null, "☾ Nacht"));
+  if (shut) list.slice().sort(byStart).forEach(function(i, k) {
+   if (k) b.append(el("i", null, "·"));
+   b.append(el("span", null, fmtMin(toMin(i.start)) + " " + (label(i) || KIND_TXT[i.kind])));
+  });
+  b.append(el("span", "night-tg", shut ? "Aufklappen ▾" : "Zuklappen ▴"));
+  b.setAttribute("aria-expanded", shut ? "false" : "true");
+  b.setAttribute("aria-label", shut ? "Nacht aufklappen, " + list.length + (list.length === 1 ? " Eintrag" : " Einträge") : "Nacht zuklappen");
+  b.addEventListener("click", nightToggle);
+  return b;
+ }
+ function weekNightRow(D, shut) {
+  var b = el("button", "wk-night");
+  b.type = "button";
+  b.append(el("span", "wn-ic", shut ? "☾▾" : "☾▴"));
+  var n = 0;
+  D.forEach(function(d) {
+   var c = el("span", "wn-c");
+   if (shut && d.night.length) {
+    var f = d.night.slice().sort(byStart)[0];
+    c.textContent = fmtMin(toMin(f.start)) + (f.emoji ? " " + f.emoji : "") + (d.night.length > 1 ? " +" + (d.night.length - 1) : "");
+    c.title = d.night.slice().sort(byStart).map(function(i) {
+     return fmtMin(toMin(i.start)) + " " + (label(i) || KIND_TXT[i.kind]);
+    }).join(" · ");
+   }
+   n += d.night.length;
+   b.append(c);
+  });
+  b.setAttribute("aria-expanded", shut ? "false" : "true");
+  b.setAttribute("aria-label", shut ? "Nacht aufklappen, " + n + (n === 1 ? " Eintrag" : " Einträge") : "Nacht zuklappen");
+  b.addEventListener("click", nightToggle);
+  return b;
+ }
  function spillRow(dir, title, parts, ds) {
   var b = el("button", "spill " + dir);
   b.type = "button";
@@ -3651,6 +3709,14 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   var work = nh.rest, inT = nh.map;
   if (!work.length) box.append(emptyState());
   var minMin = Math.round(MINH / HPX * 60);
+  var fr0 = frameOf(S.date), base0 = fr0.wake != null ? Math.floor(fr0.wake / 60) : 6;
+  var nightL = work.filter(function(i) {
+   return isNight(i, base0);
+  });
+  var nightShut = nightL.length > 0 && !S.nightOpen && !(S.date === today() && nowMin() < NIGHT_END);
+  if (nightShut) work = work.filter(function(i) {
+   return !isNight(i, base0);
+  });
   var acts = work.filter(function(i) {
    return i.kind === "aktivitaet" && i.start;
   }).map(function(i) {
@@ -3832,6 +3898,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
    return (label(x.i) || KIND_TXT[x.i.kind]) + " bis " + fmtEnd(x.e);
   });
   if (ups.length) box.append(spillRow("up", "Seit gestern", ups, pd));
+  if (nightL.length) box.append(nightRow(nightL, nightShut));
   box.append(tl);
   var downs = spillFrom(S.date).map(function(x) {
    return (label(x.i) || KIND_TXT[x.i.kind]) + " bis " + fmtEnd(x.e);
@@ -3868,19 +3935,36 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
     ds: ds,
     list: list,
     fr: frameOf(ds),
-    timed: layout(work, WHPX, WMINH, 0),
-    acts: work.filter(function(i) {
-     return i.kind === "aktivitaet" && i.start;
-    }).map(function(i) {
-     var s = toMin(i.start), dur = duration(i);
-     return {
-      i: i,
-      s: s,
-      dur: dur
-     };
-    })
+    work: work
    });
   }
+  var wbase = 6, wNight = 0;
+  D.forEach(function(d) {
+   if (d.fr.wake != null) wbase = Math.min(wbase, Math.floor(d.fr.wake / 60));
+  });
+  D.forEach(function(d) {
+   d.night = d.work.filter(function(i) {
+    return isNight(i, wbase);
+   });
+   wNight += d.night.length;
+  });
+  var wShut = wNight > 0 && !S.nightOpen && !(t >= ws && t <= addDays(ws, 6) && nm < NIGHT_END);
+  D.forEach(function(d) {
+   var w = wShut ? d.work.filter(function(i) {
+    return !isNight(i, wbase);
+   }) : d.work;
+   d.timed = layout(w, WHPX, WMINH, 0);
+   d.acts = w.filter(function(i) {
+    return i.kind === "aktivitaet" && i.start;
+   }).map(function(i) {
+    var s = toMin(i.start), dur = duration(i);
+    return {
+     i: i,
+     s: s,
+     dur: dur
+    };
+   });
+  });
   var h0 = 6, h1 = 24;
   D.forEach(function(d) {
    if (d.fr.wake != null) h0 = Math.min(h0, Math.floor(d.fr.wake / 60));
@@ -4110,7 +4194,9 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
    attachCreate(col, d.ds, WHPX);
    body.append(col);
   });
-  wrap.append(head, all, body);
+  wrap.append(head, all);
+  if (wNight) wrap.append(weekNightRow(D, wShut));
+  wrap.append(body);
   box.append(wrap);
   S.wgeo = {
    h0: h0,
