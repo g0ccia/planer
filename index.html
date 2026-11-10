@@ -43,6 +43,7 @@
   --cyc-per: #C23B2E;
   --cyc-ov: #B5ADA8;
   --cyc-lut: #4B2766;
+  --cyc-fol: #7FA58C;
   --water: #2F7FC0;
   --f-serif: "Lora", Georgia, "Times New Roman", serif;
   --f-cond: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", system-ui, sans-serif;
@@ -72,6 +73,7 @@
     --cyc-per: #E8675C;
     --cyc-ov: #A59D98;
     --cyc-lut: #9A6CC4;
+    --cyc-fol: #8FBF9F;
     --water: #6BB3EA;
     color-scheme: dark;
   }
@@ -100,6 +102,7 @@
   --cyc-per: #E8675C;
   --cyc-ov: #A59D98;
   --cyc-lut: #9A6CC4;
+  --cyc-fol: #8FBF9F;
   --water: #6BB3EA;
   color-scheme: dark;
 }
@@ -1290,6 +1293,7 @@ body::before {
 .cyc.period, .cycday.period { --cc: var(--cyc-per); }
 .cyc.ovul, .cycday.ovul { --cc: var(--cyc-ov); }
 .cyc.luteal, .cycday.luteal { --cc: var(--cyc-lut); }
+.cyc.foll, .cycday.foll { --cc: var(--cyc-fol); }
 .cyc.pred { background: repeating-linear-gradient(135deg, var(--cc) 0 1.2px, transparent 1.2px 2.6px); box-shadow: inset 0 0 0 1px var(--cc); }
 .wk-day .wd { display: inline-flex; align-items: center; gap: 3px; }
 .cycday {
@@ -2417,7 +2421,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   var ovC = future ? null : ovIn(c.ovulations, p, nx), ov = ovC || addDays(nx, -lut);
   var pend = ends[p] || addDays(p, plen - 1);
   var phase = ds <= pend ? "period" : ds === ov ? "ovul" : ds > ov ? "luteal" : "foll";
-  var pred = closed ? false : future ? true : phase === "period" ? ds > t && !ends[p] : phase === "foll" ? false : !ovC || ds > t;
+  var pred = closed ? false : future ? true : phase === "period" ? ds > t && !ends[p] : phase === "foll" ? ds > t : !ovC || ds > t;
   return {
    zt: dayNum(ds) - dayNum(p) + 1,
    phase: phase,
@@ -2445,7 +2449,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   return b;
  }
  function cycleDot(ci) {
-  if (!ci || ci.phase === "foll") return null;
+  if (!ci) return null;
   var d = el("i", "cyc " + ci.phase + (ci.pred ? " pred" : ""));
   d.setAttribute("aria-hidden", "true");
   return d;
