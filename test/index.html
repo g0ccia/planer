@@ -466,6 +466,9 @@ body.tray-target .tray { outline: 2px dashed var(--orange); outline-offset: 4px;
   box-shadow: 0 2px 6px var(--shadow);
 }
 .tbox svg { width: 14px; height: 14px; }
+.tbox.late { background: var(--surface); color: var(--red); border: 1.5px solid var(--red); font: 600 13px/1 var(--f-cond); box-shadow: none; }
+.prow.is-late { grid-template-columns: 17px minmax(0, 1fr) auto; }
+.late-go { align-self: center; background: none; border: 1px solid var(--line-strong); border-radius: 7px; padding: 4px 7px; font: 600 10.5px/1.2 var(--f-cond); letter-spacing: 0.06em; color: var(--fg-soft); white-space: nowrap; }
 .panel-scrim { position: fixed; inset: 0; z-index: 25; background: transparent; }
 .panel {
   position: fixed; z-index: 26;
@@ -4507,9 +4510,66 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
    return (i.kind === "aufgabe" || i.kind === "habit") && !i.start;
   });
  }
+ function lateList() {
+  var t = today(), out = [];
+  if (!S.loaded || S.date !== t) return out;
+  S.items.forEach(function(i) {
+   if (i.kind === "aufgabe" && !i.done && i.date && i.date < t) out.push(i);
+  });
+  return vis(out).sort(function(a, b) {
+   return a.date < b.date ? -1 : a.date > b.date ? 1 : (a.order || 0) - (b.order || 0);
+  });
+ }
+ function lateToToday(it) {
+  if (!S.db || S.pending.has(it.id)) return;
+  S.pending.add(it.id);
+  S.db.doc("items/" + it.id).update({
+   date: today(),
+   start: null,
+   end: null,
+   updatedAt: isoNow()
+  }).then(function() {
+   toast((label(it) || "Eintrag") + " steht jetzt bei heute.");
+  }).catch(function(e) {
+   toast(errText(e));
+  }).then(function() {
+   S.pending.delete(it.id);
+  });
+ }
+ function lateRow(it) {
+  var row = paint(el("div", "prow is-aufgabe is-late"), it.tags);
+  row.append(checkBtn(it));
+  var main = el("button", "prow-main");
+  main.type = "button";
+  main.setAttribute("aria-label", "Bearbeiten: " + (label(it) || "Eintrag"));
+  main.append(el("span", "prow-title", label(it) || "Ohne Titel"));
+  main.append(el("span", "prow-time", "offen seit " + shortDate(it.date)));
+  main.addEventListener("click", function() {
+   closePanel();
+   openSheet(it.id);
+  });
+  row.append(main);
+  var g = el("button", "late-go", "\u2192 heute");
+  g.type = "button";
+  g.setAttribute("aria-label", "Auf heute holen: " + (label(it) || "Eintrag"));
+  g.addEventListener("click", function(e) {
+   e.stopPropagation();
+   lateToToday(it);
+  });
+  row.append(g);
+  return row;
+ }
  function renderTray(list) {
   var tray = $("#tray");
   tray.replaceChildren();
+  var late = lateList();
+  if (late.length) {
+   var lb = el("button", "tbox late", String(late.length));
+   lb.type = "button";
+   lb.setAttribute("aria-label", late.length + (late.length === 1 ? " Aufgabe" : " Aufgaben") + " aus den letzten Tagen liegen geblieben – Liste öffnen");
+   lb.addEventListener("click", openPanel);
+   tray.append(lb);
+  }
   var open = S.loaded ? untimed(list).filter(function(i) {
    return !i.done && !i.missed;
   }) : [];
@@ -4521,7 +4581,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
    b.addEventListener("click", openPanel);
    tray.append(b);
   });
-  tray.hidden = !open.length && !(S.loaded && untimed(list).length);
+  tray.hidden = !open.length && !late.length && !(S.loaded && untimed(list).length);
   if (!open.length && S.loaded && untimed(list).length) {
    var b2 = el("button", "tbox");
    b2.type = "button";
@@ -4571,7 +4631,15 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
    return i.missed;
   });
   $("#panelTitle").textContent = "Ohne Uhrzeit · " + open.length + " offen";
-  if (!all.length) box.append(el("p", "quiet", "Für diesen Tag gibt es nichts ohne Uhrzeit."));
+  var late = lateList();
+  if (late.length) {
+   box.append(el("p", "panel-sub", "Liegengeblieben · " + late.length));
+   late.forEach(function(it) {
+    box.append(lateRow(it));
+   });
+   if (all.length) box.append(el("p", "panel-sub", "Heute"));
+  }
+  if (!all.length && !late.length) box.append(el("p", "quiet", "Für diesen Tag gibt es nichts ohne Uhrzeit."));
   var ord = function(a, b) {
    return (a.kind === b.kind ? 0 : a.kind === "aufgabe" ? -1 : 1) || (a.order || 0) - (b.order || 0);
   };
