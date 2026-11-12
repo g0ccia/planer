@@ -258,6 +258,18 @@ h1 { margin: 2px 0 0; font: 600 26px/1.05 var(--f-serif); color: var(--fg); }
   display: grid; place-items: center;
   box-shadow: 0 3px 10px var(--shadow);
 }
+.daynote {
+  flex: 1 1 0; min-width: 0; margin: 0 4px 0 auto; padding: 0 0 0 10px; max-width: 30em;
+  border: 0; border-left: 2px solid var(--orange); background: none; text-align: left;
+  font: italic 400 13px/1.35 var(--f-serif); color: var(--muted);
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden;
+}
+.daynote[hidden] { display: none; }
+.daynote.is-open { -webkit-line-clamp: unset; }
+@media (max-width: 640px) {
+  .head-row { flex-wrap: wrap; }
+  .daynote { order: 3; flex: 1 1 100%; margin: 2px 0 0; max-width: none; -webkit-line-clamp: 2; }
+}
 .add svg { width: 17px; height: 17px; }
 .add:disabled { opacity: 0.4; cursor: default; }
 .hints { display: flex; flex-wrap: wrap; gap: 4px; }
@@ -1491,6 +1503,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
         <div class="eyebrow"><span id="dt">&nbsp;</span><span class="rel" id="rel" hidden></span><span class="wx" id="wx" hidden></span></div>
         <h1 id="wd">&nbsp;</h1>
       </div>
+      <button class="daynote" id="dayNote" type="button" hidden></button>
       <button class="add" id="addBtn" type="button" aria-label="Neuer Eintrag">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
       </button>
@@ -1894,6 +1907,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
     for (var j = -7; j <= 0; j++) {
       var dj = new Date(t0); dj.setDate(t0.getDate() + j);
       store["days/" + ymd(dj)] = { wake: "06:" + pad(20 + ((j + 7) * 4) % 30), bed: j < 0 ? "22:" + pad(30 + ((j + 7) * 7) % 25) : null, source: "test", updatedAt: iso };
+      if (j === 0) store["days/" + ymd(dj)].claudeNote = "Beispiel: Hier steht eine kleine Notiz von Claude für diesen Tag.";
     }
     store["books/b-sternenkarte"] = { title: "Die Sternenkarte", series: "", author: "A. Muster", pages: 420, format: "ebook", status: "reading",
       start: day(-10), end: null, cover: null, blurb: "Beispielbuch für die Testfassung.", blurbBy: "claude", link: "", note: "", createdAt: iso, updatedAt: iso, source: "test" };
@@ -3536,6 +3550,14 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
     if (wh.w || wh.t) $("#wd").append(hoursBadge(wh));
    }
    $("#dt").textContent = d.getDate() + ". " + MON[d.getMonth()] + " " + d.getFullYear();
+   var dn = $("#dayNote"), dnT = (S.days.get(S.date) || {}).claudeNote;
+   dnT = typeof dnT === "string" ? dnT.trim() : "";
+   if (dn.textContent !== dnT) {
+    dn.textContent = dnT;
+    dn.classList.remove("is-open");
+   }
+   dn.hidden = !dnT;
+   if (dnT) dn.setAttribute("aria-label", "Notiz von Claude: " + dnT);
    var rel = S.date === t ? "Heute" : S.date === addDays(t, 1) ? "Morgen" : S.date === addDays(t, -1) ? "Gestern" : "";
    $("#rel").textContent = rel;
    $("#rel").hidden = !rel;
@@ -3579,6 +3601,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
    setTally(work.length - done - missed, done, missed);
    renderMoney(list);
   }
+  if (S.view !== "day") $("#dayNote").hidden = true;
   $("#money").hidden = S.view !== "day" || !S.loaded;
   renderTrack();
   if (S.view !== "month") $("#moBtn").hidden = true;
@@ -9402,6 +9425,9 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
    id: null,
    edit: null
   });
+ });
+ $("#dayNote").addEventListener("click", function() {
+  this.classList.toggle("is-open");
  });
  $("#addBtn").addEventListener("click", function() {
   openSheet(null);
