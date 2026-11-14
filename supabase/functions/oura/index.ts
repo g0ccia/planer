@@ -1,4 +1,5 @@
 // Oura: holt Schlaf, Tagesform, Aktivität und Stress selbst und schreibt sie in days/<Datum>.oura.
+// Bestätigte Spaziergänge (Workout "walking") werden als Aktivität "Gassi" angelegt, jeder nur einmal (private.oura_seen).
 // Einmal freigeben (OAuth2, ?a=start&k=<Einmal-Schlüssel>), danach ruft ein Zeitplan in der Datenbank ?a=sync auf.
 // Client-ID und Secret der Oura-App stehen als Secrets OURA_CLIENT_ID / OURA_CLIENT_SECRET in Supabase,
 // die Oura-Tokens in private.oura_tokens (nur über Funktionen für service_role erreichbar).
@@ -82,10 +83,73 @@ async function coll(tok: string, name: string, start: string, end: string) {
 
 const STRESS: Record<string, string> = { restored: "erholt", normal: "normal", stressful: "stressig" };
 
+const toMin = (hm: string) => Number(hm.slice(0, 2)) * 60 + Number(hm.slice(3, 5));
+const WALK = /gassi|spazier|runde|walk/i;
+
+async function gassi(tok: string, start: string, end: string) {
+  const ws = (await coll(tok, "workout", start, end)).filter((w) =>
+    w.activity === "walking" && (w.source === "confirmed" || w.source === "manual") && typeof w.id === "string" &&
+    typeof w.start_datetime === "string" && typeof w.end_datetime === "string"
+  );
+  if (!ws.length) return [];
+  const seen = await sb.rpc("oura_seen_list", { ids: ws.map((w) => w.id) });
+  if (seen.error) throw new Error(seen.error.message);
+  const known = new Set((seen.data || []) as string[]);
+  const fresh = ws.filter((w) => !known.has(w.id as string));
+  if (!fresh.length) return [];
+  const dates = Array.from(new Set(fresh.map((w) => (w.start_datetime as string).slice(0, 10))));
+  const ex = await sb.from("docs").select("path,data").eq("coll", "items").in("data->>date", dates);
+  if (ex.error) throw new Error(ex.error.message);
+  const acts = ((ex.data || []) as { path: string; data: Record<string, unknown> }[]).filter((r) =>
+    r.data && r.data.kind === "aktivitaet" && typeof r.data.start === "string"
+  );
+  const made: string[] = [];
+  for (const w of fresh) {
+    const sd = w.start_datetime as string, ed = w.end_datetime as string;
+    const date = sd.slice(0, 10), s = sd.slice(11, 16), e = ed.slice(0, 10) === date ? ed.slice(11, 16) : "23:59";
+    const a = toMin(s), b = Math.max(toMin(e), a + 1);
+    const hit = acts.find((r) => {
+      if (r.data.date !== date) return false;
+      const x = toMin(r.data.start as string), y = typeof r.data.end === "string" && r.data.end ? toMin(r.data.end as string) : x + 1;
+      if (!(a < y && b > x)) return false;
+      return WALK.test(String(r.data.title || "")) || String(r.data.emoji || "").indexOf("\u{1F415}") >= 0;
+    });
+    if (hit) {
+      await sb.rpc("oura_seen_add", { i: w.id, p: hit.path });
+      continue;
+    }
+    const now = new Date().toISOString(), bits: string[] = [];
+    if (num(w.distance) && (w.distance as number) > 0) bits.push(((w.distance as number) / 1000).toFixed(2).replace(".", ",") + " km");
+    if (num(w.calories) && (w.calories as number) > 0) bits.push(Math.round(w.calories as number) + " kcal");
+    const path = "items/" + date + "-gassi-" + Math.random().toString(36).slice(2, 6);
+    const data = {
+      kind: "aktivitaet", title: "Gassi", emoji: "\u{1F415}\u200D\u{1F9BA}", date, start: s, end: e, est: null, until: null, done: false,
+      tags: ["Viechs"], note: bits.join(" · "), order: 0, attachments: [], source: "oura", ouraId: w.id, createdAt: now, updatedAt: now,
+    };
+    const ins = await sb.from("docs").insert({ path, data });
+    if (ins.error) throw new Error(ins.error.message);
+    acts.push({ path, data });
+    await sb.rpc("oura_seen_add", { i: w.id, p: path });
+    made.push(date + " " + s);
+  }
+  return made;
+}
+
 async function sync() {
   const tok = await accessToken();
   if (!tok) return { ok: false, reason: "nicht verbunden" };
   const today = ymd(new Date()), start = addDays(today, -DAYS_BACK), end = addDays(today, 1);
+  const r = await syncDays(tok, today, start, end);
+  let walks: string[] = [], walkErr: string | null = null;
+  try {
+    walks = await gassi(tok, start, end);
+  } catch (e) {
+    walkErr = (e as Error).message;
+  }
+  return { ...r, gassi: walks, gassiError: walkErr };
+}
+
+async function syncDays(tok: string, today: string, start: string, end: string) {
   const names = ["sleep", "daily_sleep", "daily_readiness", "daily_activity", "daily_stress"];
   const res = await Promise.allSettled(names.map((n) => coll(tok, n, start, end)));
   const got = (i: number) => res[i].status === "fulfilled" ? (res[i] as PromiseFulfilledResult<Record<string, unknown>[]>).value : [];
@@ -201,7 +265,7 @@ Deno.serve(async (req: Request) => {
       let msg = "";
       try {
         const r = await sync();
-        msg = r.ok ? " Erster Abruf: " + ((r.written || []).length ? (r.written || []).join(", ") : "nichts Neues") + "." : "";
+        msg = r.ok ? " Abruf: " + ((r.written || []).length ? (r.written || []).join(", ") : "nichts Neues") + ". Gassi-Runden angelegt: " + (r.gassi || []).length + (r.gassiError ? " (Fehler: " + r.gassiError + ")" : "") + "." : "";
       } catch (e) {
         msg = " Der erste Abruf hat nicht geklappt (" + (e as Error).message + "), der Zeitplan versucht es wieder.";
       }
@@ -215,7 +279,7 @@ Deno.serve(async (req: Request) => {
       to.searchParams.set("response_type", "code");
       to.searchParams.set("client_id", CID);
       to.searchParams.set("redirect_uri", SELF);
-      to.searchParams.set("scope", "daily");
+      to.searchParams.set("scope", "daily workout");
       to.searchParams.set("state", k!);
       return new Response(null, { status: 302, headers: { location: to.toString(), "cache-control": "no-store" } });
     }
