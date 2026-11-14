@@ -1368,6 +1368,81 @@ body::before {
 .tk-pick { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 6px 8px; border: 1px dashed var(--line-strong); border-radius: 8px; }
 .tk-pick p { margin: 0 4px 0 0; font: 600 9.5px/1.2 var(--f-cond); letter-spacing: 0.1em; text-transform: uppercase; color: var(--fg-soft); }
 .tk-pick button.mpill { padding: 3px 8px; }
+.subrow .tally { flex: 0 1 auto; }
+.subrow .money { flex: none; flex-wrap: nowrap; gap: 4px; }
+.subrow .money .mlabel .s { display: none; font-size: 11px; letter-spacing: 0; }
+.subrow .money[hidden], .mlist[hidden], .bf[hidden] { display: none; }
+.subrow .money .mlabel { border: 0; background: none; padding: 4px 0; }
+button.msum { border: 1px solid var(--line-strong); background: var(--surface); border-radius: 999px; padding: 3px 7px 2px; margin: 0; white-space: nowrap; }
+button.msum[aria-expanded="true"] { border-color: var(--orange); color: var(--fg); }
+.madd .w { margin-left: 3px; }
+.mlist { display: flex; flex-wrap: wrap; align-items: center; gap: 3px; }
+.track { flex-wrap: nowrap; min-width: 0; }
+.track > * { flex: none; }
+.track .tk-read { flex: 0 1 auto; min-width: 26px; overflow: hidden; }
+@media (max-width: 640px) {
+  .madd .w, .subrow .money .mlabel .w { display: none; }
+  .subrow .money .mlabel .s { display: inline; }
+  .subrow .money .mlabel { padding: 4px 3px; }
+  .madd { padding: 3px 7px 2px; }
+}
+@media (max-width: 480px) {
+  .subrow { gap: 7px; }
+  .tk-bar { width: 28px; }
+  .track .tk-lab2 { margin-left: 3px; }
+}
+.subrow.is-tight { flex-wrap: wrap; row-gap: 6px; }
+.subrow.is-tight .money { order: 3; flex: 1 1 100%; }
+.bfb {
+  position: relative; display: inline-flex; align-items: flex-end; gap: 2px; vertical-align: 4px; margin-left: 8px;
+  height: 24px; padding: 3px 7px; border: 1.5px solid var(--line-strong); border-radius: 12px; background: transparent;
+}
+.bfb i { display: block; width: 4px; height: 9px; border-radius: 2px; background: var(--line-strong); }
+.bfb i.en { height: 6px; }
+.bfb i.on { background: var(--orange); }
+.bfb i.en.on { background: var(--water); }
+.bfb .sy { position: absolute; top: -3px; right: -3px; width: 8px; height: 8px; border-radius: 50%; background: var(--orange); box-shadow: 0 0 0 2px var(--bg); }
+.bfb .sy.hi { background: var(--red); }
+.bfb[aria-expanded="true"] { border-color: var(--orange); }
+.bf {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(236px, 1fr)); gap: 5px 20px;
+  padding: 8px 10px; border: 1px dashed var(--line-strong); border-radius: 8px;
+}
+.bf-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; }
+.bf-row .n { min-width: 0; font: 400 13px/1.2 var(--f-serif); color: var(--fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bf-row .n small { font: 500 9.5px/1 var(--f-cond); letter-spacing: 0.04em; color: var(--muted); margin-left: 5px; }
+.bf-row .tx { font: italic 400 12px/1.2 var(--f-serif); color: var(--fg-soft); text-align: right; }
+.bf-sc { flex: none; display: flex; gap: 4px; }
+.bf-sc button {
+  width: 28px; height: 28px; padding: 0; border-radius: 50%; border: 1px solid var(--line-strong); background: var(--surface);
+  font: 600 11.5px/1 var(--f-cond); color: var(--fg-soft); font-variant-numeric: tabular-nums; touch-action: manipulation;
+}
+.bf-sc button[aria-pressed="true"] { background: var(--orange); border-color: var(--orange); color: var(--on-accent); }
+.bf-sc.en button[aria-pressed="true"] { background: var(--water); border-color: var(--water); }
+.bf-sep { grid-column: 1 / -1; height: 0; border-top: 1px solid var(--line); margin: 2px 0; }
+.bf-foot { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.bf-foot input {
+  flex: 1 1 140px; min-width: 0; height: 30px; padding: 2px 8px; border: 1px solid var(--line-strong); border-radius: 6px;
+  background: var(--bg); color: var(--fg); font: 16px/1.2 var(--f-serif);
+}
+.bf-foot .sp { flex: 1 1 auto; }
+.mark .mk-sl {
+  position: absolute; left: 0; top: -16px; max-width: calc(100% - 74px); pointer-events: auto;
+  border: 0; background: var(--bg); padding: 3px 5px 2px 0; text-align: left;
+  font: 500 10px/1 var(--f-cond); letter-spacing: 0.04em; color: var(--muted); font-variant-numeric: tabular-nums;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.mark .mk-sl b { font-weight: 600; color: var(--fg-soft); }
+.dsl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 6px; }
+.dsl div { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.dsl span { font: 600 9.5px/1 var(--f-cond); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.dsl b { font: 600 19px/1 var(--f-serif); color: var(--fg); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.mmood { position: absolute; right: 4px; bottom: 4px; width: 6px; height: 6px; border-radius: 50%; background: var(--mc, var(--muted)); pointer-events: none; }
+.mmood.m1 { --mc: var(--red); }
+.mmood.m2 { --mc: var(--orange); }
+.mmood.m3 { --mc: var(--muted); }
+.mmood.m4 { --mc: var(--water); }
+.mmood.m5 { --mc: var(--plus); }
 @media (prefers-reduced-motion: no-preference) {
   .tk-bar i { transition: width 0.2s ease, background-color 0.2s ease; }
 }
@@ -1511,6 +1586,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
     <div class="hints" id="hints"></div>
     <div class="subrow">
       <button class="tally" id="tally" type="button" role="switch" aria-checked="true" aria-label="To-dos und Habits anzeigen"><span class="sw" aria-hidden="true"></span><span id="tallyText"></span></button>
+      <div class="money" id="money" aria-label="Ausgaben an diesem Tag" hidden></div>
       <button class="mo-money" id="moBtn" type="button" hidden></button>
       <div class="viewsw" role="group" aria-label="Ansicht">
         <button type="button" id="vDay" aria-pressed="true">Tag</button>
@@ -1518,7 +1594,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
         <button type="button" id="vMonth" aria-pressed="false">Monat</button>
       </div>
     </div>
-    <div class="money" id="money" aria-label="Ausgaben an diesem Tag" hidden></div>
+    <div class="mlist" id="moneyList" aria-label="Ausgaben an diesem Tag, einzeln" hidden></div>
     <div class="track" id="track" aria-label="Trinken und Lesen" hidden>
       <span class="mlabel">Trinken</span>
       <button class="tk-btn" type="button" id="tkWater"><span class="e" aria-hidden="true">💧</span><b id="tkWaterN">0</b></button>
@@ -1529,6 +1605,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
       <button class="tk-btn tk-read" type="button" id="tkAudio" aria-pressed="false"><span class="e" aria-hidden="true">🎧</span><span class="tk-book" id="tkAudioB"></span></button>
     </div>
     <div class="tk-pick" id="tkPick" hidden></div>
+    <div class="bf" id="bfPanel" aria-label="Befinden an diesem Tag" hidden></div>
     <div class="banner" id="banner" hidden></div>
   </header>
   <section id="timeline" aria-label="Zeitleiste"></section>
@@ -1908,6 +1985,10 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
       var dj = new Date(t0); dj.setDate(t0.getDate() + j);
       store["days/" + ymd(dj)] = { wake: "06:" + pad(20 + ((j + 7) * 4) % 30), bed: j < 0 ? "22:" + pad(30 + ((j + 7) * 7) % 25) : null, source: "test", updatedAt: iso };
       if (j === 0) store["days/" + ymd(dj)].claudeNote = "Beispiel: Hier steht eine kleine Notiz von Claude für diesen Tag.";
+      if (j <= 0) {
+        store["days/" + ymd(dj)].oura = { sleepMin: 372 + ((j + 7) * 11) % 50, inBedMin: 440, deepMin: 62, remMin: 98, hrv: 24, hrLow: 61, restless: 120 + ((j + 7) * 13) % 80, sleepScore: 74 + ((j + 7) * 3) % 14, readiness: 70 + ((j + 7) * 5) % 18, at: iso, final: j < 0 };
+        if (j < 0) store["days/" + ymd(dj)].body = { stimmung: 1 + ((j + 7) * 2) % 5, energie: 1 + (j + 7) % 5, nacken: (j + 7) % 3, erschoepfung: (j + 8) % 3, extra: {} };
+      }
     }
     store["books/b-sternenkarte"] = { title: "Die Sternenkarte", series: "", author: "A. Muster", pages: 420, format: "ebook", status: "reading",
       start: day(-10), end: null, cover: null, blurb: "Beispielbuch für die Testfassung.", blurbBy: "claude", link: "", note: "", createdAt: iso, updatedAt: iso, source: "test" };
@@ -3390,8 +3471,9 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
    DASH.img = null;
    return;
   }
-  var ds = S.date, parts = [ dashPhoto(ds), dashNext(ds) ], w = dashWx(ds);
+  var ds = S.date, parts = [ dashPhoto(ds), dashNext(ds) ], w = dashWx(ds), sl = dashSleep(ds);
   if (w) parts.push(w);
+  if (sl) parts.push(sl);
   host.replaceChildren.apply(host, parts);
  }
  if (DASH_MQ) {
@@ -3477,23 +3559,269 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   }
   mb.hidden = !(mm && mm.entries.length);
  }
- function renderMoney(list) {
-  var box = $("#money");
+ var MONEY_OPEN = null;
+ var BF = {
+  open: null
+ };
+ var BF_SYM = [ [ "kopfgluehen", "Kopfglühen" ], [ "kopfschmerzen", "Kopfschmerzen" ], [ "nacken", "Nacken" ], [ "haende", "Hände", "0 = wie immer" ], [ "durchfall", "Durchfall" ], [ "erschoepfung", "Erschöpfung" ], [ "unruhigerSchlaf", "Unruhiger Schlaf" ] ];
+ function plainObj(v) {
+  return v && typeof v === "object" && !Array.isArray(v) ? v : {};
+ }
+ function bodyOf(ds) {
+  return plainObj(plainObj(S.days.get(ds)).body);
+ }
+ function ouraOf(ds) {
+  return plainObj(plainObj(S.days.get(ds)).oura);
+ }
+ function restlessScore(n) {
+  return !isNum(n) ? null : n < 130 ? 0 : n <= 150 ? 1 : n <= 190 ? 2 : 3;
+ }
+ function unrestOf(ds) {
+  var b = bodyOf(ds);
+  return isNum(b.unruhigerSchlaf) ? b.unruhigerSchlaf : restlessScore(ouraOf(ds).restless);
+ }
+ function bfSave(ds, patch) {
+  if (!S.db) return;
+  var now = isoNow(), ref = S.db.doc("days/" + ds), pr;
+  if (S.days.get(ds)) pr = ref.update({
+   body: patch,
+   updatedAt: now
+  }); else pr = ref.set({
+   date: ds,
+   body: patch,
+   updatedAt: now
+  });
+  pr.catch(function(e) {
+   toast(errText(e));
+  });
+ }
+ function feelBadge(ds) {
+  var b = bodyOf(ds), btn = el("button", "bfb"), parts = [];
+  btn.type = "button";
+  [ [ "stimmung", "Stimmung", "" ], [ "energie", "Energie", " en" ] ].forEach(function(m) {
+   var v = isNum(b[m[0]]) ? Math.max(1, Math.min(5, Math.round(b[m[0]]))) : 0, bar = el("i", (v ? "on" : "") + m[2]);
+   if (v) bar.style.height = v * 3 + "px";
+   btn.append(bar);
+   parts.push(m[1] + (v ? " " + v + " von 5" : " offen"));
+  });
+  var mx = 0, cnt = 0;
+  BF_SYM.forEach(function(sy) {
+   var v = sy[0] === "unruhigerSchlaf" ? unrestOf(ds) : b[sy[0]];
+   if (isNum(v) && v > 0) {
+    cnt++;
+    mx = Math.max(mx, v);
+   }
+  });
+  var ex = plainObj(b.extra);
+  Object.keys(ex).forEach(function(k) {
+   if (isNum(ex[k]) ? ex[k] > 0 : !!ex[k]) {
+    cnt++;
+    mx = Math.max(mx, isNum(ex[k]) ? ex[k] : 1);
+   }
+  });
+  if (cnt) {
+   btn.append(el("span", "sy" + (mx >= 2 ? " hi" : "")));
+   parts.push(cnt + (cnt === 1 ? " Beschwerde" : " Beschwerden"));
+  }
+  btn.setAttribute("aria-expanded", BF.open === ds ? "true" : "false");
+  btn.setAttribute("aria-label", "Befinden: " + parts.join(", ") + " – eintragen");
+  btn.addEventListener("click", function() {
+   BF.open = BF.open === ds ? null : ds;
+   render();
+  });
+  return btn;
+ }
+ function bfScale(cur, lo, hi, cls, lab, onPick) {
+  var sc = el("div", "bf-sc" + (cls ? " " + cls : ""));
+  for (var v = lo; v <= hi; v++) (function(val) {
+   var x = el("button", null, String(val));
+   x.type = "button";
+   x.setAttribute("aria-pressed", cur === val ? "true" : "false");
+   x.setAttribute("aria-label", lab + " " + val + (cur === val ? " – antippen nimmt es zurück" : ""));
+   x.addEventListener("click", function() {
+    onPick(cur === val ? null : val);
+   });
+   sc.append(x);
+  })(v);
+  return sc;
+ }
+ function renderFeel() {
+  var box = $("#bfPanel"), ds = S.date;
+  var on = S.view === "day" && S.loaded && !!S.db && BF.open === ds;
+  if (!on) {
+   box.hidden = true;
+   if (box.firstChild) box.replaceChildren();
+   return;
+  }
+  var act = document.activeElement, typing = act && act.id === "bfNew" ? act.value : null;
   box.replaceChildren();
+  var b = bodyOf(ds), o = ouraOf(ds);
+  var row = function(name, hint, ctl) {
+   var r = el("div", "bf-row"), n = el("span", "n", name);
+   if (hint) n.append(el("small", null, hint));
+   r.append(n, ctl);
+   box.append(r);
+  };
+  [ [ "stimmung", "Stimmung", "" ], [ "energie", "Energie", "en" ] ].forEach(function(m) {
+   var cur = isNum(b[m[0]]) ? b[m[0]] : null;
+   row(m[1], "1 tief · 5 gut", bfScale(cur, 1, 5, m[2], m[1], function(v) {
+    var p = {};
+    p[m[0]] = v;
+    bfSave(ds, p);
+   }));
+  });
+  box.append(el("div", "bf-sep"));
+  BF_SYM.forEach(function(sy) {
+   var cur = isNum(b[sy[0]]) ? b[sy[0]] : null, hint = sy[2] || "";
+   if (sy[0] === "unruhigerSchlaf" && isNum(o.restless)) {
+    hint = "Oura " + o.restless;
+    if (cur == null) cur = restlessScore(o.restless);
+   }
+   row(sy[1], hint, bfScale(cur, 0, 3, "", sy[1], function(v) {
+    var p = {};
+    p[sy[0]] = v;
+    bfSave(ds, p);
+   }));
+  });
+  var ex = plainObj(b.extra);
+  Object.keys(ex).forEach(function(k) {
+   if (ex[k] == null) return;
+   if (isNum(ex[k])) row(k, "Zusatz", bfScale(ex[k], 0, 3, "", k, function(v) {
+    var e = {};
+    e[k] = v;
+    bfSave(ds, {
+     extra: e
+    });
+   })); else row(k, "Zusatz", el("span", "tx", String(ex[k])));
+  });
+  var foot = el("div", "bf-foot"), inp = el("input");
+  inp.id = "bfNew";
+  inp.type = "text";
+  inp.placeholder = "Zusatz, z. B. Brustspannen";
+  inp.setAttribute("aria-label", "Weitere Beschwerde");
+  inp.autocomplete = "off";
+  var addX = function() {
+   var name = inp.value.trim().replace(/\s+/g, " ");
+   if (!name) return;
+   var e = {};
+   e[name] = isNum(ex[name]) ? ex[name] : 1;
+   inp.value = "";
+   bfSave(ds, {
+    extra: e
+   });
+  };
+  inp.addEventListener("keydown", function(e) {
+   if (e.key === "Enter") {
+    e.preventDefault();
+    addX();
+   }
+  });
+  var ab = el("button", "madd", "+ Zusatz");
+  ab.type = "button";
+  ab.addEventListener("click", addX);
+  var cx = el("button", "plain-btn", "Fertig");
+  cx.type = "button";
+  cx.addEventListener("click", function() {
+   BF.open = null;
+   render();
+  });
+  foot.append(inp, ab, el("span", "sp"), cx);
+  box.append(foot);
+  box.hidden = false;
+  if (typing != null) {
+   inp.value = typing;
+   inp.focus();
+  }
+ }
+ function fmtHM(min) {
+  var m = Math.round(min);
+  return Math.floor(m / 60) + " h " + pad(m % 60);
+ }
+ function sleepBits(ds) {
+  var o = ouraOf(ds), out = [];
+  if (isNum(o.sleepMin)) out.push([ "", fmtHM(o.sleepMin) ]);
+  if (isNum(o.sleepScore)) out.push([ "Schlaf ", String(o.sleepScore) ]);
+  if (isNum(o.readiness)) out.push([ "Tagesform ", String(o.readiness) ]);
+  var u = unrestOf(ds);
+  if (isNum(u) && out.length) out.push([ "unruhig ", String(u) ]);
+  return out;
+ }
+ function ouraStamp(o) {
+  var at = o.at ? new Date(o.at) : null;
+  if (!at || isNaN(at)) return "";
+  return "Stand " + (ymd(at) === today() ? "" : pad(at.getDate()) + "." + pad(at.getMonth() + 1) + ". ") + pad(at.getHours()) + ":" + pad(at.getMinutes()) + (o.final === false ? ", vorläufig" : "");
+ }
+ function sleepDetail(ds) {
+  var o = ouraOf(ds), p = [];
+  if (isNum(o.sleepMin)) p.push("Schlaf " + fmtHM(o.sleepMin) + (isNum(o.inBedMin) ? " von " + fmtHM(o.inBedMin) + " im Bett" : ""));
+  if (isNum(o.deepMin)) p.push("Tief " + fmtHM(o.deepMin));
+  if (isNum(o.remMin)) p.push("REM " + fmtHM(o.remMin));
+  if (isNum(o.hrv)) p.push("HFV " + o.hrv);
+  if (isNum(o.hrLow)) p.push("Puls tief " + o.hrLow);
+  if (isNum(o.restless)) p.push("unruhige Phasen " + o.restless);
+  var st = ouraStamp(o);
+  if (st) p.push(st);
+  return p.join(" · ");
+ }
+ function dashSleep(ds) {
+  var o = ouraOf(ds);
+  if (!isNum(o.sleepMin) && !isNum(o.sleepScore) && !isNum(o.readiness)) return null;
+  var c = el("section", "dash-card dash-sleep"), hd = el("h2", "dash-h", "Schlaf"), st = ouraStamp(o);
+  if (st) hd.append(el("small", null, st));
+  c.append(hd);
+  var g = el("div", "dsl"), u = unrestOf(ds);
+  var tile = function(lab, val) {
+   var d = el("div");
+   d.append(el("span", null, lab), el("b", null, val));
+   g.append(d);
+  };
+  if (isNum(o.sleepMin)) tile("Dauer", fmtHM(o.sleepMin));
+  if (isNum(o.sleepScore)) tile("Schlafwert", String(o.sleepScore));
+  if (isNum(o.readiness)) tile("Tagesform", String(o.readiness));
+  if (isNum(o.hrv)) tile("HFV", String(o.hrv));
+  if (isNum(o.hrLow)) tile("Puls tief", String(o.hrLow));
+  if (isNum(u)) tile("Unruhig", u + " / 3");
+  c.append(g);
+  return c;
+ }
+ function fitSubrow() {
+  var sr = $(".subrow"), tt = $("#tallyText");
+  sr.classList.remove("is-tight");
+  if (S.view === "day" && S.loaded && tt.scrollWidth > tt.clientWidth + 1) sr.classList.add("is-tight");
+ }
+ window.addEventListener("resize", function() {
+  if (S.loaded) fitSubrow();
+ });
+ function renderMoney(list) {
+  var box = $("#money"), lst = $("#moneyList");
+  box.replaceChildren();
+  lst.replaceChildren();
   var exp = list.filter(function(i) {
    return i.kind === "ausgabe" && typeof i.amount === "number";
   });
-  var ml = el("button", "mlabel", "Ausgaben");
+  var ml = el("button", "mlabel");
   ml.type = "button";
+  ml.append(el("span", "w", "Ausgaben"), el("span", "s", "€"));
   ml.setAttribute("aria-label", "Ausgaben im " + MON[parseYmd(S.date).getMonth()] + " – Übersicht öffnen");
   ml.addEventListener("click", function() {
    openMoney(monthRange(S.date).first);
   });
   box.append(ml);
-  if (exp.length > 1) box.append(el("span", "msum", fmtEuro(exp.reduce(function(a, i) {
-   return a + i.amount;
-  }, 0), true)));
-  exp.forEach(function(i) {
+  var open = MONEY_OPEN === S.date && exp.length > 0;
+  if (exp.length) {
+   var total = exp.reduce(function(a, i) {
+    return a + i.amount;
+   }, 0), sb = el("button", "msum", fmtEuro(total, true));
+   sb.type = "button";
+   sb.setAttribute("aria-expanded", open ? "true" : "false");
+   sb.setAttribute("aria-label", exp.length + (exp.length === 1 ? " Posten" : " Posten") + ", zusammen " + fmtEuro(total, true) + " – " + (open ? "einklappen" : "einzeln zeigen"));
+   sb.addEventListener("click", function() {
+    MONEY_OPEN = open ? null : S.date;
+    render();
+   });
+   box.append(sb);
+  }
+  if (open) exp.forEach(function(i) {
    var b = el("button", "mpill" + (i.amount > 0 ? " in" : "") + (i.date > today() ? " plan" : ""));
    b.type = "button";
    if (i.isOcc) {
@@ -3507,11 +3835,14 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
    b.addEventListener("click", function() {
     openSheet(i.id);
    });
-   box.append(b);
+   lst.append(b);
   });
+  lst.hidden = !open || S.view !== "day";
   if (S.db) {
-   var add = el("button", "madd", "+ Ausgabe");
+   var add = el("button", "madd", "+");
    add.type = "button";
+   add.append(el("span", "w", "Ausgabe"));
+   add.setAttribute("aria-label", "Ausgabe eintragen");
    add.addEventListener("click", function() {
     openSheet(null, {
      kind: "ausgabe",
@@ -3548,6 +3879,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
    if (S.loaded) {
     var wh = dayWork(S.date);
     if (wh.w || wh.t) $("#wd").append(hoursBadge(wh));
+    if (S.db) $("#wd").append(feelBadge(S.date));
    }
    $("#dt").textContent = d.getDate() + ". " + MON[d.getMonth()] + " " + d.getFullYear();
    var dn = $("#dayNote"), dnT = (S.days.get(S.date) || {}).claudeNote;
@@ -3603,7 +3935,10 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   }
   if (S.view !== "day") $("#dayNote").hidden = true;
   $("#money").hidden = S.view !== "day" || !S.loaded;
+  if (S.view !== "day" || !S.loaded) $("#moneyList").hidden = true;
   renderTrack();
+  renderFeel();
+  fitSubrow();
   if (S.view !== "month") $("#moBtn").hidden = true;
   var banner = $("#banner");
   if (S.status === "nodb") {
@@ -3875,8 +4210,28 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
    mk.style.top = (m - h0 * 60) / 60 * HPX + "px";
    mk.append(el("span", null, text));
    lane.append(mk);
+   return mk;
   };
-  if (wakeM != null && wakeM >= h0 * 60) mark(wakeM, "wach " + fmtMin(wakeM));
+  if (wakeM != null && wakeM >= h0 * 60) {
+   var wmk = mark(wakeM, "wach " + fmtMin(wakeM)), sbits = sleepBits(S.date);
+   if (sbits.length) {
+    var slb = el("button", "mk-sl");
+    slb.type = "button";
+    sbits.forEach(function(p, k) {
+     if (k) slb.append(document.createTextNode(" · "));
+     if (p[0]) slb.append(document.createTextNode(p[0]));
+     slb.append(el("b", null, p[1]));
+    });
+    slb.setAttribute("aria-label", "Letzte Nacht: " + sbits.map(function(p) {
+     return p[0] + p[1];
+    }).join(", ") + " – Einzelheiten zeigen");
+    slb.addEventListener("click", function(e) {
+     e.stopPropagation();
+     toast(sleepDetail(S.date));
+    });
+    wmk.append(slb);
+   }
+  }
   if (bedM != null && bedM < 1440 && bedM <= h1 * 60) mark(bedM, "Bett " + fmtMin(bedM));
   acts.forEach(function(a) {
    var it = a.i;
@@ -4480,6 +4835,8 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
      cell.append(kw);
     }
     cell.append(el("span", "mnum", String(dd.getDate())));
+    var mood = bodyOf(ds).stimmung;
+    if (isNum(mood) && mood >= 1) cell.append(el("span", "mmood m" + Math.max(1, Math.min(5, Math.round(mood)))));
     if (lanes.length) {
      var sp = el("span", "mspace");
      sp.style.height = lanes.length * lane - 2 + "px";
