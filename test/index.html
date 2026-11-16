@@ -1365,9 +1365,13 @@ body::before {
 .tk-read[aria-pressed="true"], .tk-btn.ok { border-color: var(--plus); box-shadow: inset 0 0 0 0.75px var(--plus); }
 .tk-book { min-width: 0; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 500 10.5px/1.2 var(--f-serif); }
 .tk-book:empty { display: none; }
+.tk-more { flex: none; font: 600 9.5px/1 var(--f-cond); color: var(--plus); }
+.tk-more:empty { display: none; }
 .tk-pick { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 6px 8px; border: 1px dashed var(--line-strong); border-radius: 8px; }
 .tk-pick p { margin: 0 4px 0 0; font: 600 9.5px/1.2 var(--f-cond); letter-spacing: 0.1em; text-transform: uppercase; color: var(--fg-soft); }
 .tk-pick button.mpill { padding: 3px 8px; }
+.tk-pick button.mpill[aria-pressed="true"] { border-color: var(--plus); box-shadow: inset 0 0 0 0.75px var(--plus); }
+.tk-pick button.mpill[aria-pressed="true"] span::before { content: "✓ "; color: var(--plus); }
 .subrow .tally { flex: 0 1 auto; }
 .subrow .money { flex: none; flex-wrap: nowrap; gap: 4px; }
 .subrow .money .mlabel .s { display: none; font-size: 11px; letter-spacing: 0; }
@@ -1601,8 +1605,8 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
       <button class="tk-btn" type="button" id="tkCoffee"><span class="e" aria-hidden="true">☕</span><b id="tkCoffeeN">0</b></button>
       <span class="tk-meter" id="tkMeter"><span class="tk-bar" aria-hidden="true"><i id="tkFill"></i></span><span class="tk-sum" id="tkSum"></span></span>
       <span class="mlabel tk-lab2">Lesen</span>
-      <button class="tk-btn tk-read" type="button" id="tkPrint" aria-pressed="false"><span class="e" aria-hidden="true">📖</span><span class="tk-book" id="tkPrintB"></span></button>
-      <button class="tk-btn tk-read" type="button" id="tkAudio" aria-pressed="false"><span class="e" aria-hidden="true">🎧</span><span class="tk-book" id="tkAudioB"></span></button>
+      <button class="tk-btn tk-read" type="button" id="tkPrint" aria-pressed="false"><span class="e" aria-hidden="true">📖</span><span class="tk-book" id="tkPrintB"></span><span class="tk-more" id="tkPrintN"></span></button>
+      <button class="tk-btn tk-read" type="button" id="tkAudio" aria-pressed="false"><span class="e" aria-hidden="true">🎧</span><span class="tk-book" id="tkAudioB"></span><span class="tk-more" id="tkAudioN"></span></button>
     </div>
     <div class="tk-pick" id="tkPick" hidden></div>
     <div class="bf" id="bfPanel" aria-label="Befinden an diesem Tag" hidden></div>
@@ -8660,7 +8664,27 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   }, S.track.get(ds) || {}, TK.local[ds] || {});
   t.water = Math.max(0, Number(t.water) || 0);
   t.coffee = Math.max(0, Number(t.coffee) || 0);
+  t.print = readNorm(t.print);
+  t.audio = readNorm(t.audio);
   return t;
+ }
+ function readIds(v) {
+  if (Array.isArray(v)) {
+   var seen = {};
+   return v.filter(function(x) {
+    if (!x || typeof x !== "string" || seen[x]) return false;
+    seen[x] = 1;
+    return true;
+   });
+  }
+  return v && typeof v === "string" ? [ v ] : [];
+ }
+ function readNorm(v) {
+  var a = readIds(v);
+  if (a.length > 1) a = a.filter(function(x) {
+   return x !== "-";
+  });
+  return a.length ? a.length === 1 ? a[0] : a : null;
  }
  function trackMl(t) {
   var c = trackCfg();
@@ -8728,8 +8752,8 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   var data = Object.assign({}, S.track.get(ds) || {}, loc);
   data.water = Math.max(0, Number(data.water) || 0);
   data.coffee = Math.max(0, Number(data.coffee) || 0);
-  if (data.print === undefined) data.print = null;
-  if (data.audio === undefined) data.audio = null;
+  data.print = readNorm(data.print);
+  data.audio = readNorm(data.audio);
   data.date = ds;
   data.updatedAt = isoNow();
   TK.busy[ds] = true;
@@ -8815,12 +8839,46 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
  function bookOf(id) {
   return id && id !== "-" ? S.books.get(id) || null : null;
  }
+ function pickBooks(medium, ds) {
+  var out = currentBooks(medium), has = {}, sel = readIds(trackOf(ds)[medium]), more = [];
+  out.forEach(function(b) {
+   has[b.id] = 1;
+  });
+  S.books.forEach(function(b) {
+   if (has[b.id]) return;
+   if (b.end === ds || sel.indexOf(b.id) >= 0) {
+    has[b.id] = 1;
+    more.push(b);
+   }
+  });
+  more.sort(function(a, b) {
+   var ma = a.format === "audio" === (medium === "audio") ? 0 : 1, mb = b.format === "audio" === (medium === "audio") ? 0 : 1;
+   return ma - mb || String(a.title || "").localeCompare(String(b.title || ""), "de");
+  });
+  return out.concat(more);
+ }
  function logRead(medium, bookId) {
   var ds = S.date, p = {};
   p[medium] = bookId || "-";
   TK.pick = null;
   trackChange(ds, p, 300);
-  var b = bookOf(bookId);
+  markBookRead(bookOf(bookId), ds);
+ }
+ function toggleRead(medium, bookId) {
+  var ds = S.date, cur = readIds(trackOf(ds)[medium]), id = bookId || "-", p = {};
+  if (cur.indexOf(id) >= 0) cur = cur.filter(function(x) {
+   return x !== id;
+  }); else if (id === "-") cur = [ "-" ]; else {
+   cur = cur.filter(function(x) {
+    return x !== "-";
+   });
+   cur.push(id);
+   markBookRead(bookOf(id), ds);
+  }
+  p[medium] = readNorm(cur);
+  trackChange(ds, p, 300);
+ }
+ function markBookRead(b, ds) {
   if (b && S.db) {
    var up = {};
    if (!b.start || ds < b.start) up.start = ds;
@@ -8842,7 +8900,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
    trackChange(S.date, p, 300);
    return;
   }
-  var list = currentBooks(medium);
+  var list = pickBooks(medium, S.date);
   if (list.length === 1) logRead(medium, list[0].id); else if (!list.length) logRead(medium, null); else {
    TK.pick = medium;
    renderTrack();
@@ -8872,33 +8930,36 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   $("#tkWater").classList.toggle("ok", ok);
   $("#tkMeter").setAttribute("role", "img");
   $("#tkMeter").setAttribute("aria-label", fmtL(ml) + " von " + fmtL(c.goal) + (ok ? ", Ziel erreicht" : "") + (c.coffeeCounts ? "" : " (Kaffee zählt nicht mit)"));
-  [ [ "print", "#tkPrint", "#tkPrintB", "Gelesen" ], [ "audio", "#tkAudio", "#tkAudioB", "Gehört" ] ].forEach(function(m) {
-   var v = t[m[0]], b = bookOf(v);
+  [ [ "print", "#tkPrint", "#tkPrintB", "Gelesen", "#tkPrintN" ], [ "audio", "#tkAudio", "#tkAudioB", "Gehört", "#tkAudioN" ] ].forEach(function(m) {
+   var ids = readIds(t[m[0]]), v = ids.length > 0, bs = ids.map(bookOf).filter(Boolean);
    $(m[1]).setAttribute("aria-pressed", v ? "true" : "false");
-   $(m[2]).textContent = v ? bookShort(b) : "";
-   $(m[1]).setAttribute("aria-label", m[3] + (v ? ": ja" + (b ? ", " + bookShort(b) : "") + ". Antippen nimmt es zurück" : ": noch nicht. Antippen trägt es ein") + ", lange drücken: Buch wählen");
+   $(m[2]).textContent = bs.length ? bookShort(bs[0]) : "";
+   $(m[4]).textContent = bs.length > 1 ? "+" + (bs.length - 1) : "";
+   $(m[1]).setAttribute("aria-label", m[3] + (v ? ": ja" + (bs.length ? ", " + bs.map(bookShort).join(" und ") : "") + ". Antippen nimmt es zurück" : ": noch nicht. Antippen trägt es ein") + ", lange drücken: Bücher wählen");
   });
   pick.replaceChildren();
   if (!TK.pick) {
    pick.hidden = true;
    return;
   }
-  var med = TK.pick;
-  pick.append(el("p", null, med === "audio" ? "Was hast du gehört?" : "Was hast du gelesen?"));
-  currentBooks(med).forEach(function(b) {
+  var med = TK.pick, sel = readIds(t[med]);
+  pick.append(el("p", null, (med === "audio" ? "Was hast du gehört?" : "Was hast du gelesen?") + " Mehrere möglich"));
+  pickBooks(med, S.date).forEach(function(b) {
    var x = el("button", "mpill");
    x.type = "button";
+   x.setAttribute("aria-pressed", sel.indexOf(b.id) >= 0 ? "true" : "false");
    x.append(el("span", null, (b.format === "audio" ? "🎧 " : "📖 ") + bookShort(b)));
    x.addEventListener("click", function() {
-    logRead(med, b.id);
+    toggleRead(med, b.id);
    });
    pick.append(x);
   });
   var none = el("button", "mpill");
   none.type = "button";
+  none.setAttribute("aria-pressed", sel.indexOf("-") >= 0 ? "true" : "false");
   none.append(el("span", null, "Ohne Buch"));
   none.addEventListener("click", function() {
-   logRead(med, null);
+   toggleRead(med, null);
   });
   pick.append(none);
   if (typeof openBooks === "function") {
@@ -8911,7 +8972,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
    });
    pick.append(other);
   }
-  var cx = el("button", "plain-btn", "Abbrechen");
+  var cx = el("button", "plain-btn", "Fertig");
   cx.type = "button";
   cx.addEventListener("click", function() {
    TK.pick = null;
@@ -9009,7 +9070,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
    days: []
   };
   S.track.forEach(function(t, ds) {
-   var a = t.print === id, h = t.audio === id;
+   var a = readIds(t.print).indexOf(id) >= 0, h = readIds(t.audio).indexOf(id) >= 0;
    if (a) r.print++;
    if (h) r.audio++;
    if (a || h) r.days.push(ds);
@@ -9593,8 +9654,8 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   for (var k = 1; k <= dim; k++) {
    var ds = ymd(new Date(d0.getFullYear(), d0.getMonth(), k)), tr = S.track.get(ds) || {};
    var info = {
-    p: !!tr.print,
-    a: !!tr.audio,
+    p: readIds(tr.print).length > 0,
+    a: readIds(tr.audio).length > 0,
     h: hab.has(ds)
    };
    dayInfo[ds] = info;
