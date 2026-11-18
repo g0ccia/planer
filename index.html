@@ -200,6 +200,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .otd-it img { display: block; width: 92px; height: 120px; object-fit: cover; object-position: top; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); }
 .otd-it b { font: 600 15px/1 var(--f-serif); color: var(--fg); }
 .otd-it small { max-width: 92px; font: 500 10.5px/1.25 var(--f-cond); letter-spacing: 0.04em; color: var(--muted); }
+.otd-txt { display: block; box-sizing: border-box; width: 92px; height: 120px; overflow: hidden; padding: 8px 9px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); font: italic 400 10.5px/1.35 var(--f-serif); color: var(--fg-soft); text-align: left; white-space: normal; overflow-wrap: anywhere; }
+.lb-text .otd-h { margin: 0 0 10px; font: 600 17px/1.3 var(--f-serif); color: var(--fg); white-space: normal; }
 .lb-body video { display: block; max-width: 100%; max-height: 100%; border-radius: 8px; box-shadow: 0 8px 30px var(--shadow); background: #000; }
 .otd {
   font: 600 10px/1 var(--f-cond); letter-spacing: 0.12em; text-transform: uppercase;
@@ -3585,22 +3587,28 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   if (!ds || !S.diarium || !S.diarium.size) return [];
   var md = ds.slice(5), y = ds.slice(0, 4), out = [];
   S.diarium.forEach(function(e) {
-   if (e && e.md === md && String(e.date || "").slice(0, 4) < y && Array.isArray(e.pages) && e.pages.length) out.push(e);
+   if (e && e.md === md && String(e.date || "").slice(0, 4) < y && (Array.isArray(e.pages) && e.pages.length || otdText(e))) out.push(e);
   });
   out.sort(function(a, b) {
    return a.date < b.date ? -1 : a.date > b.date ? 1 : (a.time || "") < (b.time || "") ? -1 : 1;
   });
   return out;
  }
+ function otdText(e) {
+  return String(e && e.text || "").trim();
+ }
  function otdPages(list) {
   var out = [];
   list.forEach(function(e) {
-   e.pages.forEach(function(p, i) {
+   var ps = (otdText(e) ? [ {
+    kind: "text"
+   } ] : []).concat(Array.isArray(e.pages) ? e.pages : []);
+   ps.forEach(function(p, i) {
     out.push({
      e: e,
      p: p,
      n: i + 1,
-     of: e.pages.length
+     of: ps.length
     });
    });
   });
@@ -3634,7 +3642,13 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   if (!pg) return;
   var body = $("#lbBody"), url = blobUrl(pg.p.id), d = String(pg.e.date || "");
   body.replaceChildren();
-  if (pg.p.kind === "video") {
+  $("#lbOpen").hidden = pg.p.kind === "text";
+  if (pg.p.kind === "text") {
+   var tb = el("div", "lb-text");
+   if (pg.e.heading) tb.append(el("h3", "otd-h", pg.e.heading));
+   tb.append(document.createTextNode(otdText(pg.e)));
+   body.append(tb);
+  } else if (pg.p.kind === "video") {
    var vd = document.createElement("video");
    vd.controls = true;
    vd.playsInline = true;
@@ -3685,20 +3699,27 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
    var b = el("button", "otd-it"), at = idx;
    b.type = "button";
    b.setAttribute("aria-label", "Diarium " + String(e.date).slice(0, 4) + " öffnen");
-   var im = el("img"), th = e.pages.filter(function(p) {
+   var pgs = Array.isArray(e.pages) ? e.pages : [], th = pgs.filter(function(p) {
     return p.kind !== "video";
-   })[0];
-   im.src = blobUrl(th ? th.id : e.pages[0].poster || e.pages[0].id);
-   im.alt = "";
-   im.decoding = "async";
-   b.append(im);
+   })[0] || (pgs[0] && pgs[0].poster ? {
+    id: pgs[0].poster
+   } : null);
+   if (th) {
+    var im = el("img");
+    im.src = blobUrl(th.id);
+    im.alt = "";
+    im.decoding = "async";
+    b.append(im);
+   } else b.append(el("span", "otd-txt", (e.heading ? e.heading + " – " : "") + otdText(e).slice(0, 160)));
    b.append(el("b", null, String(e.date).slice(0, 4)));
-   b.append(el("small", null, otdCount(e.pages)));
+   var lab = otdCount(pgs);
+   if (otdText(e)) lab = lab ? "Text · " + lab : "Text";
+   b.append(el("small", null, lab));
    b.addEventListener("click", function() {
     showDiarium(list, at);
    });
    row.append(b);
-   idx += e.pages.length;
+   idx += (otdText(e) ? 1 : 0) + (Array.isArray(e.pages) ? e.pages.length : 0);
   });
   c.append(row);
   return c;
@@ -6281,6 +6302,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
  }
  function showAtt(a) {
   LB.pages = null;
+  $("#lbOpen").hidden = false;
   $("#lbNav").hidden = true;
   var body = $("#lbBody"), url = blobUrl(a.id);
   body.replaceChildren();
