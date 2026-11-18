@@ -194,6 +194,24 @@ button { font: inherit; color: inherit; cursor: pointer; }
   font: 600 10.5px/1 var(--f-cond); letter-spacing: 0.14em; text-transform: uppercase; color: var(--red);
 }
 .dash-h small { font: 500 10.5px/1 var(--f-cond); letter-spacing: 0.04em; text-transform: none; color: var(--muted); }
+.otd-row { display: flex; gap: 10px; overflow-x: auto; scrollbar-width: none; padding: 2px 0 4px; }
+.otd-row::-webkit-scrollbar { display: none; }
+.otd-it { flex: none; display: flex; flex-direction: column; align-items: flex-start; gap: 5px; padding: 0; border: 0; background: none; text-align: left; }
+.otd-it img { display: block; width: 92px; height: 120px; object-fit: cover; object-position: top; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); }
+.otd-it b { font: 600 15px/1 var(--f-serif); color: var(--fg); }
+.otd-it small { font: 500 10.5px/1.2 var(--f-cond); letter-spacing: 0.04em; color: var(--muted); }
+.otd {
+  font: 600 10px/1 var(--f-cond); letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--fg-soft); background: none; border: 1px solid var(--line-strong); border-radius: 999px; padding: 2px 7px 1px;
+}
+.otd[hidden] { display: none; }
+.eyebrow { flex-wrap: wrap; row-gap: 4px; }
+@media (max-width: 640px) { .head-title { flex: 1 1 0; } }
+.lb-bar { flex-wrap: wrap; justify-content: center; }
+.lb-nav { flex: 1 1 100%; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.lb-nav[hidden] { display: none; }
+.lb-nav span { white-space: nowrap; font: 600 11px/1 var(--f-cond); letter-spacing: 0.08em; text-transform: uppercase; color: var(--fg); background: var(--surface); border-radius: 999px; padding: 8px 12px 7px; }
+.lb-bar .lb-nav button:disabled { opacity: 0.35; cursor: default; }
 .dn-row {
   display: grid; grid-template-columns: 44px 3px minmax(0, 1fr) auto; align-items: center; gap: 10px;
   width: 100%; padding: 7px 0; border: 0; border-top: 1px solid var(--line); background: none; text-align: left;
@@ -1579,7 +1597,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   <header class="head">
     <div class="head-row">
       <div class="head-title">
-        <div class="eyebrow"><span id="dt">&nbsp;</span><span class="rel" id="rel" hidden></span><span class="wx" id="wx" hidden></span></div>
+        <div class="eyebrow"><span id="dt">&nbsp;</span><span class="rel" id="rel" hidden></span><span class="wx" id="wx" hidden></span><button class="otd" id="otd" type="button" hidden></button></div>
         <h1 id="wd">&nbsp;</h1>
       </div>
       <button class="daynote" id="dayNote" type="button" hidden></button>
@@ -1733,7 +1751,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
 
 <div class="lightbox" id="lightbox" role="dialog" aria-label="Anhang" hidden>
   <div class="lb-body" id="lbBody"></div>
-  <div class="lb-bar"><a id="lbOpen" href="#" target="_blank" rel="noopener">In neuem Tab</a><button type="button" id="lbClose">Schließen</button></div>
+  <div class="lb-bar"><span class="lb-nav" id="lbNav" hidden><button type="button" id="lbPrev" aria-label="Vorige Seite">‹</button><span id="lbPos"></span><button type="button" id="lbNext" aria-label="Nächste Seite">›</button></span><a id="lbOpen" href="#" target="_blank" rel="noopener">In neuem Tab</a><button type="button" id="lbClose">Schließen</button></div>
 </div>
 
 <div class="scrim" id="scrim" hidden>
@@ -1998,6 +2016,9 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
       start: day(-10), end: null, cover: null, blurb: "Beispielbuch für die Testfassung.", blurbBy: "claude", link: "", note: "", createdAt: iso, updatedAt: iso, source: "test" };
     store["track/" + today] = { date: today, water: 3, coffee: 1, print: "b-sternenkarte", audio: null, updatedAt: iso };
     store["config/work"] = { soll: 160 };
+    /* Diarium „An diesem Tag“: zwei Beispieljahre auf heute */
+    store["diarium/" + (+today.slice(0, 4) - 29) + today.slice(4) + "-0746"] = { date: (+today.slice(0, 4) - 29) + today.slice(4), md: today.slice(5), time: "07:46", weather: "", pages: [{ id: "demo-foto-3", w: 1200, h: 1600 }, { id: "demo-foto-1", w: 1200, h: 1600 }], source: "test" };
+    store["diarium/" + (+today.slice(0, 4) - 27) + today.slice(4) + "-1900"] = { date: (+today.slice(0, 4) - 27) + today.slice(4), md: today.slice(5), time: "19:00", weather: "", pages: [{ id: "demo-foto-2", w: 1200, h: 1600 }], source: "test" };
     save();
   }
   if (!store["config/tags"]) seed();
@@ -2164,6 +2185,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   wx: new Map,
   track: new Map,
   books: new Map,
+  diarium: new Map,
   tcfg: null,
   colors: {},
   got: {
@@ -3467,6 +3489,112 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   c.append(row);
   return c;
  }
+ function otdList(ds) {
+  if (!ds || !S.diarium || !S.diarium.size) return [];
+  var md = ds.slice(5), y = ds.slice(0, 4), out = [];
+  S.diarium.forEach(function(e) {
+   if (e && e.md === md && String(e.date || "").slice(0, 4) < y && Array.isArray(e.pages) && e.pages.length) out.push(e);
+  });
+  out.sort(function(a, b) {
+   return a.date < b.date ? -1 : a.date > b.date ? 1 : (a.time || "") < (b.time || "") ? -1 : 1;
+  });
+  return out;
+ }
+ function otdPages(list) {
+  var out = [];
+  list.forEach(function(e) {
+   e.pages.forEach(function(p, i) {
+    out.push({
+     e: e,
+     p: p,
+     n: i + 1,
+     of: e.pages.length
+    });
+   });
+  });
+  return out;
+ }
+ function otdAgo(e, ds) {
+  var n = +ds.slice(0, 4) - +String(e.date).slice(0, 4);
+  return n === 1 ? "vor 1 Jahr" : "vor " + n + " Jahren";
+ }
+ var LB = {
+  pages: null,
+  i: 0
+ };
+ function lbShowPage() {
+  var pg = LB.pages && LB.pages[LB.i];
+  if (!pg) return;
+  var body = $("#lbBody"), url = blobUrl(pg.p.id), d = String(pg.e.date || "");
+  body.replaceChildren();
+  var im = document.createElement("img");
+  im.src = url;
+  im.alt = "Diarium " + d.slice(8, 10) + "." + d.slice(5, 7) + "." + d.slice(0, 4) + ", Seite " + pg.n;
+  body.append(im);
+  $("#lbOpen").href = url;
+  $("#lbPos").textContent = d.slice(8, 10) + "." + d.slice(5, 7) + "." + d.slice(0, 4) + (pg.of > 1 ? " · S. " + pg.n + "/" + pg.of : "");
+  $("#lbPrev").disabled = LB.i <= 0;
+  $("#lbNext").disabled = LB.i >= LB.pages.length - 1;
+  var many = LB.pages.length > 1;
+  $("#lbPrev").hidden = !many;
+  $("#lbNext").hidden = !many;
+  $("#lbNav").hidden = false;
+ }
+ function showDiarium(list, start) {
+  LB.pages = otdPages(list);
+  if (!LB.pages.length) return;
+  LB.i = Math.max(0, Math.min(start || 0, LB.pages.length - 1));
+  lbShowPage();
+  $("#lightbox").hidden = false;
+ }
+ function lbStep(d) {
+  if (!LB.pages) return;
+  var n = LB.i + d;
+  if (n < 0 || n >= LB.pages.length) return;
+  LB.i = n;
+  lbShowPage();
+ }
+ function dashOtd(ds) {
+  var list = otdList(ds);
+  if (!list.length) return null;
+  var c = el("section", "dash-card dash-otd"), hd = el("h2", "dash-h", "An diesem Tag");
+  hd.append(el("small", null, list.length === 1 ? otdAgo(list[0], ds) : list.length + " Einträge"));
+  c.append(hd);
+  var row = el("div", "otd-row"), idx = 0;
+  list.forEach(function(e) {
+   var b = el("button", "otd-it"), at = idx;
+   b.type = "button";
+   b.setAttribute("aria-label", "Diarium " + String(e.date).slice(0, 4) + " öffnen");
+   var im = el("img");
+   im.src = blobUrl(e.pages[0].id);
+   im.alt = "";
+   im.decoding = "async";
+   b.append(im);
+   b.append(el("b", null, String(e.date).slice(0, 4)));
+   b.append(el("small", null, e.pages.length > 1 ? e.pages.length + " Seiten" : "1 Seite"));
+   b.addEventListener("click", function() {
+    showDiarium(list, at);
+   });
+   row.append(b);
+   idx += e.pages.length;
+  });
+  c.append(row);
+  return c;
+ }
+ function renderOtdChip() {
+  var b = $("#otd");
+  if (!b) return;
+  var list = S.view === "day" && S.loaded && !dashOn() ? otdList(S.date) : [];
+  b.hidden = !list.length;
+  if (!list.length) return;
+  var ys = list.map(function(e) {
+   return String(e.date).slice(0, 4);
+  }).filter(function(y, i, a) {
+   return a.indexOf(y) === i;
+  });
+  b.textContent = "📔 " + ys[0] + (ys.length > 1 ? " +" + (ys.length - 1) : "");
+  b.setAttribute("aria-label", "An diesem Tag: Diarium " + ys.join(", "));
+ }
  function renderDash() {
   var host = $("#dash");
   if (!host) return;
@@ -3475,7 +3603,11 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
    DASH.img = null;
    return;
   }
-  var ds = S.date, parts = [ dashPhoto(ds), dashNext(ds) ], w = dashWx(ds), sl = dashSleep(ds);
+  var ds = S.date, parts = [ dashPhoto(ds) ], od = dashOtd(ds), w, sl;
+  if (od) parts.push(od);
+  parts.push(dashNext(ds));
+  w = dashWx(ds);
+  sl = dashSleep(ds);
   if (w) parts.push(w);
   if (sl) parts.push(sl);
   host.replaceChildren.apply(host, parts);
@@ -3938,6 +4070,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
    renderMoney(list);
   }
   if (S.view !== "day") $("#dayNote").hidden = true;
+  renderOtdChip();
   $("#money").hidden = S.view !== "day" || !S.loaded;
   if (S.view !== "day" || !S.loaded) $("#moneyList").hidden = true;
   renderTrack();
@@ -6025,6 +6158,8 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   $("#attRow").hidden = !!S.attOff || !S.att.length && !S.assets;
  }
  function showAtt(a) {
+  LB.pages = null;
+  $("#lbNav").hidden = true;
   var body = $("#lbBody"), url = blobUrl(a.id);
   body.replaceChildren();
   $("#lbOpen").href = url;
@@ -6118,6 +6253,8 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
  }
  function closeLightbox() {
   $("#lightbox").hidden = true;
+  LB.pages = null;
+  $("#lbNav").hidden = true;
   $("#lbBody").replaceChildren();
  }
  function formMsg(m) {
@@ -10990,6 +11127,29 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   startInk({});
  });
  $("#lbClose").addEventListener("click", closeLightbox);
+ $("#lbPrev").addEventListener("click", function() {
+  lbStep(-1);
+ });
+ $("#lbNext").addEventListener("click", function() {
+  lbStep(1);
+ });
+ $("#otd").addEventListener("click", function() {
+  var list = otdList(S.date);
+  if (list.length) showDiarium(list, 0);
+ });
+ (function() {
+  var x0 = null, y0 = null;
+  $("#lbBody").addEventListener("pointerdown", function(e) {
+   x0 = e.clientX;
+   y0 = e.clientY;
+  });
+  $("#lbBody").addEventListener("pointerup", function(e) {
+   if (x0 == null || !LB.pages) return;
+   var dx = e.clientX - x0, dy = e.clientY - y0;
+   x0 = null;
+   if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) lbStep(dx < 0 ? 1 : -1);
+  });
+ })();
  $("#lightbox").addEventListener("click", function(e) {
   if (e.target === this || e.target.id === "lbBody") closeLightbox();
  });
@@ -11019,6 +11179,11 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   passive: false
  });
  document.addEventListener("keydown", function(e) {
+  if ((e.key === "ArrowLeft" || e.key === "ArrowRight") && LB.pages && !$("#lightbox").hidden) {
+   lbStep(e.key === "ArrowLeft" ? -1 : 1);
+   e.preventDefault();
+   return;
+  }
   if (e.key !== "Escape") return;
   if (!$("#lightbox").hidden) closeLightbox(); else if (!$("#scrim").hidden) closeSheet(); else if (!$("#booksView").hidden) closeBooks(); else if (!$("#hoursView").hidden) closeHours(); else if (!$("#moneyView").hidden) closeMoney(); else if (!$("#browse").hidden) {
    closeBrowse();
@@ -11303,6 +11468,17 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
     renderTrack();
     if (typeof renderBooks === "function") renderBooks();
    }
+  }, function() {});
+  db.collection("diarium").onSnapshot(function(snap) {
+   var m = new Map;
+   snap.docs.forEach(function(d) {
+    var v = d.data();
+    if (v) m.set(d.id, Object.assign({
+     id: d.id
+    }, v));
+   });
+   S.diarium = m;
+   if (S.loaded && !busy()) render();
   }, function() {});
   db.collection("books").onSnapshot(function(snap) {
    var m = new Map;
