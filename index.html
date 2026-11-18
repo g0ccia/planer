@@ -3650,7 +3650,9 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
    body.append(im);
   }
   $("#lbOpen").href = url;
-  $("#lbPos").textContent = d.slice(8, 10) + "." + d.slice(5, 7) + "." + d.slice(0, 4) + (pg.of > 1 ? " · " + pg.n + "/" + pg.of : "");
+  var cap = String(pg.e.heading || pg.e.text || "").trim();
+  if (cap.length > 40) cap = cap.slice(0, 39) + "…";
+  $("#lbPos").textContent = d.slice(8, 10) + "." + d.slice(5, 7) + "." + d.slice(0, 4) + (cap ? " · " + cap : "") + (pg.of > 1 ? " · " + pg.n + "/" + pg.of : "");
   $("#lbPrev").disabled = LB.i <= 0;
   $("#lbNext").disabled = LB.i >= LB.pages.length - 1;
   var many = LB.pages.length > 1;
