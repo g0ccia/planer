@@ -4338,6 +4338,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
     dur: dur
    };
   });
+  var labMin = Math.ceil((MINH + 1) / HPX * 60);
   var timed = layout(work, HPX, MINH, TWO_LINE);
   timed.forEach(function(x) {
    if (x.s + x.dur > 1440) {
@@ -4429,7 +4430,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
    band.style.top = (a.s - h0 * 60) / 60 * HPX + "px";
    band.style.height = Math.max(MINH, Math.min(a.dur, 1440 - a.s) / 60 * HPX) + "px";
    var squeezed = timed.some(function(x) {
-    return x.s < a.le && a.s < x.le;
+    return x.s < a.s + labMin && a.s < x.le;
    });
    if (squeezed) {
     band.classList.add("squeezed");
