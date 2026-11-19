@@ -1458,10 +1458,12 @@ button.msum[aria-expanded="true"] { border-color: var(--orange); color: var(--fg
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .mark .mk-sl b { font-weight: 600; color: var(--fg-soft); }
-.dsl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 6px; }
-.dsl div { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-.dsl span { font: 600 9.5px/1 var(--f-cond); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
-.dsl b { font: 600 19px/1 var(--f-serif); color: var(--fg); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.dash-sleep { padding-bottom: 9px; }
+.dash-sleep .dash-h { margin-bottom: 7px; }
+.dsl { display: grid; grid-auto-flow: column; grid-auto-columns: max-content; justify-content: space-between; gap: 0 8px; }
+.dsl div { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.dsl span { font: 600 8.5px/1 var(--f-cond); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dsl b { font: 600 15px/1 var(--f-serif); color: var(--fg); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .mmood { position: absolute; right: 4px; bottom: 4px; width: 6px; height: 6px; border-radius: 50%; background: var(--mc, var(--muted)); pointer-events: none; }
 .mmood.m1 { --mc: var(--red); }
 .mmood.m2 { --mc: var(--orange); }
