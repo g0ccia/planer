@@ -3623,6 +3623,11 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
  function showDiarium(list, start) {
   LB.pages = otdPages(list);
   if (!LB.pages.length) return;
+  if (window.__blobReady) window.__blobReady(LB.pages.reduce(function(a, pg) {
+   if (pg.p.kind !== "text") a.push(pg.p.id);
+   if (pg.p.poster) a.push(pg.p.poster);
+   return a;
+  }, []));
   LB.i = Math.max(0, Math.min(start || 0, LB.pages.length - 1));
   lbShowPage();
   $("#lightbox").hidden = false;
@@ -6185,6 +6190,12 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
  function blobUrl(id) {
   return "_blob/" + id;
  }
+ function blobGet(id) {
+  var w = window.__blobReady ? window.__blobReady([ id ]) : Promise.resolve();
+  return w.then(function() {
+   return fetch(blobUrl(id));
+  });
+ }
  function isImg(a) {
   return /^image\//.test(a.type || "");
  }
@@ -6263,7 +6274,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   } else if (isText(a)) {
    var box = el("div", "lb-text", "Lädt …");
    body.append(box);
-   fetch(url).then(function(r) {
+   blobGet(a.id).then(function(r) {
     if (!r.ok) throw new Error("http");
     return r.text();
    }).then(function(txt) {
@@ -11248,7 +11259,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   });
   formMsg("Lädt die Handschrift …");
   Promise.all(set.map(function(x) {
-   return fetch(blobUrl(x.ink)).then(function(r) {
+   return blobGet(x.ink).then(function(r) {
     if (!r.ok) throw new Error("http");
     return r.json();
    }).then(function(d) {

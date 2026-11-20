@@ -1998,35 +1998,32 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
 
   /* ---------- Laden und Abgleichen ---------- */
   var lastSync = null;
-  async function loadAll() {
+  /* Seiten zu je 1000 Zeilen, immer drei gleichzeitig statt nacheinander */
+  async function pages(query) {
     var rows = [];
-    for (var off = 0; ; off += 1000) {
-      var r = await sb.from("docs").select("path,data,updated_at").order("path").range(off, off + 999);
-      if (r.error) throw fail(r.error);
-      rows = rows.concat(r.data);
-      if (r.data.length < 1000) break;
+    for (var off = 0; ; off += 3000) {
+      var rs = await Promise.all([0, 1, 2].map(function (k) { var a = off + k * 1000; return query().range(a, a + 999); }));
+      var more = true;
+      for (var k = 0; k < rs.length; k++) {
+        if (rs[k].error) throw fail(rs[k].error);
+        rows = rows.concat(rs[k].data);
+        if (rs[k].data.length < 1000) { more = false; break; }
+      }
+      if (!more) return rows;
     }
+  }
+  async function loadAll() {
+    var rows = await pages(function () { return sb.from("docs").select("path,data,updated_at").order("path"); });
     store.clear();
     rows.forEach(function (x) { store.set(x.path, x.data); if (!lastSync || x.updated_at > lastSync) lastSync = x.updated_at; });
   }
   async function resync() {
     try {
       var since = lastSync || "1970-01-01T00:00:00Z";
-      var changed = [];
-      for (var off = 0; ; off += 1000) {
-        var r = await sb.from("docs").select("path,data,updated_at").gt("updated_at", since).order("path").range(off, off + 999);
-        if (r.error) return;
-        changed = changed.concat(r.data);
-        if (r.data.length < 1000) break;
-      }
+      var changed = await pages(function () { return sb.from("docs").select("path,data,updated_at").gt("updated_at", since).order("path"); });
       changed.forEach(function (x) { store.set(x.path, x.data); notify(x.path); if (!lastSync || x.updated_at > lastSync) lastSync = x.updated_at; });
       var paths = new Set();
-      for (var o2 = 0; ; o2 += 1000) {
-        var p = await sb.from("docs").select("path").order("path").range(o2, o2 + 999);
-        if (p.error) return;
-        p.data.forEach(function (x) { paths.add(x.path); });
-        if (p.data.length < 1000) break;
-      }
+      (await pages(function () { return sb.from("docs").select("path").order("path"); })).forEach(function (x) { paths.add(x.path); });
       Array.from(store.keys()).forEach(function (k) { if (!paths.has(k)) { store.delete(k); notify(k); } });
     } catch (e) { /* beim nächsten Mal */ }
   }
@@ -2053,41 +2050,86 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
     var hiddenAt = 0;
     document.addEventListener("visibilitychange", function () {
       if (document.hidden) { hiddenAt = Date.now(); return; }
-      if (hiddenAt && Date.now() - hiddenAt > 20000) { resync(); refreshSigned(); } else if (hiddenAt) quick();
+      if (hiddenAt && Date.now() - hiddenAt > 20000) { resync(); warm(); } else if (hiddenAt) quick();
     });
   }
 
   /* ---------- Anhänge ---------- */
-  var urls = new Map(), signedAt = 0, want = new Set(), wantTimer = null;
-  async function listNames() {
-    var names = [];
-    for (var off = 0; ; off += 1000) {
-      var r = await sb.storage.from(BUCKET).list("", { limit: 1000, offset: off, sortBy: { column: "name", order: "asc" } });
-      if (r.error) throw fail(r.error);
-      r.data.forEach(function (o) { if (o.id) names.push(o.name); });
-      if (r.data.length < 1000) break;
-    }
-    return names;
+  /* Signierte Links nur für das, was gebraucht wird (nicht mehr alle Dateien beim Start).
+     Sie gelten 7 Tage und werden auf dem Gerät gemerkt – gleicher Link = Bild kommt aus dem Browser-Cache. */
+  var URLS_KEY = "planer-urls", KEEP = 24 * 3600 * 1000;
+  var PH = "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==";
+  var urls = new Map(), want = new Set(), wantTimer = null, inflight = new Map(), saveTimer = null;
+  try {
+    var saved = JSON.parse(localStorage.getItem(URLS_KEY) || "{}"), t0 = Date.now();
+    Object.keys(saved).forEach(function (id) { var e = saved[id]; if (e && e[0] && e[1] - t0 > KEEP) urls.set(id, { u: e[0], x: e[1] }); });
+  } catch (e) {}
+  function saveUrls() {
+    if (saveTimer) return;
+    saveTimer = setTimeout(function () {
+      saveTimer = null;
+      var o = {}, now = Date.now();
+      urls.forEach(function (e, id) { if (e.x - now > KEEP) o[id] = [e.u, e.x]; });
+      try { localStorage.setItem(URLS_KEY, JSON.stringify(o)); } catch (e) {}
+    }, 1000);
   }
-  async function sign(names) {
-    for (var i = 0; i < names.length; i += 300) {
-      var r = await sb.storage.from(BUCKET).createSignedUrls(names.slice(i, i + 300), SIGN_SECS);
-      if (!r.error && r.data) r.data.forEach(function (d) { if (d.signedUrl && d.path) urls.set(d.path, d.signedUrl); });
-    }
+  function usable(id) { var e = urls.get(id); return !!e && e.x - Date.now() > 60000; }
+  function setUrl(id, u) { urls.set(id, { u: u, x: Date.now() + SIGN_SECS * 1000 - 60000 }); }
+  /* Platzhalter, die schon auf der Seite stehen, gegen den echten Link tauschen */
+  function patch() {
+    document.querySelectorAll('img[src^="data:image/gif"],video[src^="data:image/gif"],video[poster^="data:image/gif"],a[href^="data:image/gif"]').forEach(function (n) {
+      ["src", "poster", "href"].forEach(function (a) {
+        var v = n.getAttribute(a);
+        if (!v || v.indexOf(PH + "#") !== 0) return;
+        var e = urls.get(v.slice(PH.length + 1));
+        if (e) n.setAttribute(a, e.u);
+      });
+    });
   }
-  async function signAll() { await sign(await listNames()); signedAt = Date.now(); }
-  function refreshSigned() { if (Date.now() - signedAt > 24 * 3600 * 1000) signAll().then(function () { notify("*"); }, function () {}); }
+  function sign(ids) {
+    var todo = [], waits = [];
+    Array.from(new Set(ids)).forEach(function (id) {
+      if (!id) return;
+      if (inflight.has(id)) waits.push(inflight.get(id)); else todo.push(id);
+    });
+    for (var i = 0; i < todo.length; i += 300) (function (chunk) {
+      var p = sb.storage.from(BUCKET).createSignedUrls(chunk, SIGN_SECS).then(function (r) {
+        if (!r.error && r.data) r.data.forEach(function (d) { if (d.signedUrl && d.path) setUrl(d.path, d.signedUrl); });
+      }, function () {}).then(function () { chunk.forEach(function (id) { inflight.delete(id); }); });
+      chunk.forEach(function (id) { inflight.set(id, p); });
+      waits.push(p);
+    })(todo.slice(i, i + 300));
+    return Promise.all(waits).then(function () { saveUrls(); patch(); });
+  }
+  /* Anhänge aller Einträge außer Diarium (Fotos, Cover, Handschrift …) im Hintergrund bereithalten */
+  function warm() {
+    var need = new Set(), now = Date.now();
+    store.forEach(function (v, p) {
+      if (collOf(p) === "diarium") return;
+      var m = JSON.stringify(v).match(/"[0-9a-f]{32}"/g);
+      if (m) m.forEach(function (x) {
+        var id = x.slice(1, -1), e = urls.get(id);
+        if (!e || e.x - now < KEEP) need.add(id);
+      });
+    });
+    if (need.size) sign(Array.from(need));
+  }
   window.__blobUrl = function (id) {
     if (!id) return "";
-    var u = urls.get(id);
-    if (u) return u;
-    want.add(id);
-    if (!wantTimer) wantTimer = setTimeout(function () {
+    var e = urls.get(id);
+    if (e && usable(id)) { if (e.x - Date.now() < KEEP) want.add(id); }
+    else want.add(id);
+    if (want.size && !wantTimer) wantTimer = setTimeout(function () {
       wantTimer = null;
       var ids = Array.from(want); want.clear();
-      sign(ids).then(function () { if (ids.some(function (x) { return urls.has(x); })) notify("*"); });
-    }, 60);
-    return "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==";
+      sign(ids);
+    }, 40);
+    return e && usable(id) ? e.u : PH + "#" + id;
+  };
+  /* Für alles, was die Datei selbst lädt (Text, Handschrift): wartet, bis der Link da ist */
+  window.__blobReady = function (ids) {
+    var need = (ids || []).filter(function (id) { return id && !usable(id); });
+    return need.length ? sign(need) : Promise.resolve();
   };
   function newId() {
     if (window.crypto && crypto.randomUUID) return crypto.randomUUID().replace(/-/g, "");
@@ -2101,7 +2143,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
         if (r.error) throw fail(r.error);
         return sb.storage.from(BUCKET).createSignedUrl(id, SIGN_SECS);
       }).then(function (r) {
-        if (r && r.data && r.data.signedUrl) urls.set(id, r.data.signedUrl);
+        if (r && r.data && r.data.signedUrl) { setUrl(id, r.data.signedUrl); saveUrls(); }
         return { id: id, contentType: type, sizeBytes: blob.size };
       });
     }
@@ -2144,15 +2186,18 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   var ready = (async function () {
     var s = (await sb.auth.getSession()).data.session;
     if (!s) s = await loginBox();
-    var own = await sb.rpc("is_owner");
+    /* Zugriff prüfen und Einträge laden gleichzeitig; Anhänge erst danach im Hintergrund */
+    var res = await Promise.all([sb.rpc("is_owner"), loadAll().then(function () { return null; }, function (e) { return e; })]);
+    var own = res[0];
     if (own.error || own.data !== true) {
+      store.clear();
       banner(own.error ? "Keine Verbindung zu Supabase. Lade die Seite neu." : "Dieses Konto hat keinen Zugriff auf den Planer.");
       return null;
     }
-    await loadAll();
-    try { await signAll(); } catch (e) { /* Anhänge später */ }
+    if (res[1]) throw res[1];
     started = true;
     live();
+    setTimeout(warm, 200);
     sb.auth.onAuthStateChange(function (ev) { if (ev === "SIGNED_OUT") location.reload(); });
     return db;
   })().catch(function (e) { console.error(e); banner("Der Planer ließ sich nicht laden: " + (e && e.message ? e.message : e)); return null; });
@@ -3713,6 +3758,11 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
  function showDiarium(list, start) {
   LB.pages = otdPages(list);
   if (!LB.pages.length) return;
+  if (window.__blobReady) window.__blobReady(LB.pages.reduce(function(a, pg) {
+   if (pg.p.kind !== "text") a.push(pg.p.id);
+   if (pg.p.poster) a.push(pg.p.poster);
+   return a;
+  }, []));
   LB.i = Math.max(0, Math.min(start || 0, LB.pages.length - 1));
   lbShowPage();
   $("#lightbox").hidden = false;
@@ -6275,6 +6325,12 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
  function blobUrl(id) {
   return window.__blobUrl(id);
  }
+ function blobGet(id) {
+  var w = window.__blobReady ? window.__blobReady([ id ]) : Promise.resolve();
+  return w.then(function() {
+   return fetch(blobUrl(id));
+  });
+ }
  function isImg(a) {
   return /^image\//.test(a.type || "");
  }
@@ -6353,7 +6409,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   } else if (isText(a)) {
    var box = el("div", "lb-text", "Lädt …");
    body.append(box);
-   fetch(url).then(function(r) {
+   blobGet(a.id).then(function(r) {
     if (!r.ok) throw new Error("http");
     return r.text();
    }).then(function(txt) {
@@ -11338,7 +11394,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   });
   formMsg("Lädt die Handschrift …");
   Promise.all(set.map(function(x) {
-   return fetch(blobUrl(x.ink)).then(function(r) {
+   return blobGet(x.ink).then(function(r) {
     if (!r.ok) throw new Error("http");
     return r.json();
    }).then(function(d) {
