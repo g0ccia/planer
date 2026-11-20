@@ -1119,6 +1119,39 @@ body::before {
   font: 500 16px/1.2 var(--f-cond); color: var(--fg);
   background: var(--bg); border: 1px solid var(--line-strong); border-radius: 6px; padding: 2px 6px;
 }
+.pp-btn {
+  display: flex; align-items: center; gap: 6px; width: 100%; min-width: 0; height: 30px; margin: 0; padding: 2px 8px 2px 7px;
+  font: 500 16px/1.2 var(--f-cond); color: var(--fg); text-align: left;
+  background: var(--bg); border: 1px solid var(--line-strong); border-radius: 6px;
+}
+.pp-txt { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pp-txt i { font-style: normal; color: var(--fg-soft); }
+.pp-txt.none { color: var(--fg-soft); }
+.pp-btn svg { flex: none; width: 13px; height: 13px; color: var(--fg-soft); transition: transform 0.15s; }
+.pp-btn[aria-expanded="true"] { border-color: var(--orange); }
+.pp-btn[aria-expanded="true"] svg { transform: rotate(180deg); }
+.ppick {
+  position: relative; margin-top: 3px; padding: 2px 0; max-height: min(55vh, 440px); overflow-y: auto; overscroll-behavior: contain;
+  background: var(--bg); border: 1px solid var(--line-strong); border-radius: 6px;
+}
+.pp-row { display: flex; align-items: stretch; min-height: 34px; padding-left: calc(var(--d, 0) * 16px); }
+.pp-row + .pp-row { border-top: 1px solid var(--line); }
+.pp-tog {
+  flex: none; width: 34px; margin: 0; padding: 0; border: 0; background: transparent; color: var(--fg-soft);
+  display: flex; align-items: center; justify-content: center;
+}
+.pp-tog svg { width: 13px; height: 13px; transition: transform 0.15s; }
+.pp-tog[aria-expanded="true"] svg { transform: rotate(90deg); }
+.pp-pick {
+  flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 8px; margin: 0; padding: 4px 10px 4px 0;
+  border: 0; background: transparent; text-align: left; font: 400 14.5px/1.25 var(--f-serif); color: var(--fg);
+}
+.pp-l { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pp-n { flex: none; font: 600 10.5px/1 var(--f-cond); letter-spacing: 0.04em; color: var(--fg-soft); font-variant-numeric: tabular-nums; }
+.pp-root .pp-pick { font-weight: 600; }
+.pp-none .pp-pick { color: var(--fg-soft); font-style: italic; }
+.pp-row.on { box-shadow: inset 3px 0 0 var(--orange); }
+.pp-row.on .pp-pick { color: var(--orange); font-weight: 600; }
 .tagpick { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
 .tagpick button {
   border: 1px solid var(--line-strong); background: transparent; border-radius: 999px; padding: 3px 8px 2px;
@@ -1805,7 +1838,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
       <p class="rep-info" id="rInfo" hidden></p>
     </div>
     <div class="field" id="tagsRow"><label class="field"><span>Tags</span><input id="f-tags" class="cond" type="text" placeholder="z. B. Fahrschule, Home" autocomplete="off"></label><div class="tagpick" id="tagPick" hidden></div></div>
-    <label class="field" id="parentRow" hidden><span>Gehört zu</span><select id="f-parent"></select></label>
+    <div class="field" id="parentRow" hidden><span>Gehört zu</span><button class="pp-btn" type="button" id="parentBtn" aria-expanded="false" aria-controls="parentPick"><span class="pp-txt" id="parentTxt"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button><input type="hidden" id="f-parent"><div class="ppick" id="parentPick" role="tree" aria-label="Gehört zu auswählen" hidden></div></div>
     <div class="tlink" id="terminRow" hidden><span id="terminTxt"></span><button class="plain-btn" type="button" id="terminOff">Lösen</button></div>
     <div class="field note-field">
       <div class="note-lab"><label for="f-note">Notiz</label><button class="eye" type="button" id="noteEye" aria-pressed="false" aria-controls="notePrev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="2.8"/></svg>Vorschau</button></div>
@@ -7435,40 +7468,144 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   $("#noteEye").setAttribute("aria-pressed", on ? "true" : "false");
   $("#noteEye").setAttribute("aria-label", on ? "Vorschau an, zum Bearbeiten antippen" : "Formatierte Vorschau zeigen");
  }
- function fillParent(selfId, cur) {
-  var sel = $("#f-parent");
-  sel.replaceChildren();
-  var excl = selfId ? descendants(selfId) : new Set;
-  if (selfId) excl.add(selfId);
-  var seen = {};
-  var add = function(v, t) {
-   var o = document.createElement("option");
-   o.value = v;
-   o.textContent = t;
-   sel.append(o);
-  };
-  add("", "– nichts, eigenständig –");
-  var walk = function(it, depth) {
-   if (excl.has(it.id) || seen[it.id] || depth > 6) return;
+ var PP = {
+  open: false,
+  cur: "",
+  excl: new Set,
+  exp: new Set
+ };
+ var PP_CHEV = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
+ function ppLabel(it, depth) {
+  var pre = it.kind === "notiz" ? depth && it.date ? shortDate(it.date) + " · " : "" : "☐ ";
+  return pre + (it.kind === "notiz" && depth && it.date && !String(it.title || "").trim() ? label(it) : noteName(it));
+ }
+ function ppTree() {
+  var seen = {}, top = [];
+  var mk = function(it, depth) {
+   if (PP.excl.has(it.id) || seen[it.id] || depth > 6) return null;
    seen[it.id] = 1;
-   var pre = it.kind === "notiz" ? depth && it.date ? shortDate(it.date) + " · " : "" : "☐ ";
-   add(it.id, "  ".repeat(depth) + pre + shorten(it.kind === "notiz" && depth && it.date && !String(it.title || "").trim() ? label(it) : noteName(it), 44));
+   var n = {
+    it: it,
+    depth: depth,
+    kids: []
+   };
    kids(it.id).filter(function(c) {
-    return c.kind === "notiz" || isTask(c) && !c.done || c.id === cur;
+    return c.kind === "notiz" || isTask(c) && !c.done || c.id === PP.cur;
    }).sort(entrySort).forEach(function(c) {
-    walk(c, depth + 1);
+    var k = mk(c, depth + 1);
+    if (k) n.kids.push(k);
    });
+   return n;
   };
   rootNotes().sort(function(a, b) {
    return (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || noteName(a).localeCompare(noteName(b), "de");
   }).forEach(function(r) {
-   walk(r, 0);
+   var n = mk(r, 0);
+   if (n) top.push(n);
   });
-  if (cur && !seen[cur]) {
-   var c = S.items.get(cur);
-   if (c) add(cur, (isTask(c) ? "☐ " : "") + shorten(noteName(c), 44));
+  return {
+   top: top,
+   seen: seen
+  };
+ }
+ function setParent(v) {
+  var it = v ? S.items.get(v) : null;
+  if (!it || PP.excl.has(v)) v = "", it = null;
+  PP.cur = v;
+  $("#f-parent").value = v;
+  var t = $("#parentTxt");
+  t.replaceChildren();
+  t.classList.toggle("none", !it);
+  if (!it) {
+   t.textContent = "– nichts, eigenständig –";
+   return;
   }
-  sel.value = cur || "";
+  var an = ancestors(it);
+  if (an.length) t.append(el("i", null, an.map(function(a) {
+   return shorten(noteName(a), 22);
+  }).join(" › ") + " › "));
+  t.append(document.createTextNode(shorten(ppLabel(it, an.length), 60)));
+ }
+ function ppOpenPath() {
+  var c = PP.cur && S.items.get(PP.cur);
+  if (c) ancestors(c).forEach(function(a) {
+   PP.exp.add(a.id);
+  });
+ }
+ function renderParentPick(scrollTo) {
+  var box = $("#parentPick"), st = box.scrollTop;
+  $("#parentBtn").setAttribute("aria-expanded", PP.open ? "true" : "false");
+  box.hidden = !PP.open;
+  box.replaceChildren();
+  if (!PP.open) return;
+  var tr = ppTree(), onEl = null;
+  var row = function(txt, val, n, cls) {
+   var depth = n ? n.depth : 0, has = !!(n && n.kids.length), ex = has && PP.exp.has(val);
+   var r = el("div", "pp-row" + (cls ? " " + cls : "") + (val === PP.cur ? " on" : ""));
+   r.style.setProperty("--d", String(depth));
+   r.setAttribute("role", "treeitem");
+   r.setAttribute("aria-level", String(depth + 1));
+   if (has) r.setAttribute("aria-expanded", ex ? "true" : "false");
+   if (val === PP.cur) r.setAttribute("aria-selected", "true");
+   if (has) {
+    var tg = el("button", "pp-tog");
+    tg.type = "button";
+    tg.innerHTML = PP_CHEV;
+    tg.setAttribute("aria-expanded", ex ? "true" : "false");
+    tg.setAttribute("aria-label", (ex ? "Zuklappen: " : "Aufklappen: ") + txt);
+    tg.addEventListener("click", function() {
+     if (PP.exp.has(val)) PP.exp.delete(val); else PP.exp.add(val);
+     renderParentPick();
+    });
+    r.append(tg);
+   } else r.append(el("span", "pp-tog"));
+   var pk = el("button", "pp-pick");
+   pk.type = "button";
+   pk.append(el("span", "pp-l", txt));
+   if (has && !ex) pk.append(el("span", "pp-n", String(n.kids.length)));
+   pk.addEventListener("click", function() {
+    setParent(val);
+    PP.open = false;
+    renderParentPick();
+   });
+   r.append(pk);
+   box.append(r);
+   if (val === PP.cur) onEl = r;
+  };
+  row("– nichts, eigenständig –", "", null, "pp-none");
+  if (PP.cur && !tr.seen[PP.cur]) {
+   var c = S.items.get(PP.cur);
+   if (c) row((isTask(c) ? "☐ " : "") + noteName(c), PP.cur, null);
+  }
+  var walk = function(n) {
+   row(ppLabel(n.it, n.depth), n.it.id, n, n.depth ? "" : "pp-root");
+   if (n.kids.length && PP.exp.has(n.it.id)) n.kids.forEach(walk);
+  };
+  tr.top.forEach(walk);
+  if (scrollTo) {
+   box.scrollTop = onEl ? Math.max(0, onEl.offsetTop - box.clientHeight / 3) : 0;
+   if (box.scrollIntoView) box.scrollIntoView({
+    block: "nearest"
+   });
+  } else box.scrollTop = st;
+ }
+ function toggleParentPick() {
+  PP.open = !PP.open;
+  if (PP.open) {
+   ppOpenPath();
+   var a = document.activeElement;
+   if (a && a !== document.body && a.blur) a.blur();
+  }
+  renderParentPick(PP.open);
+ }
+ function fillParent(selfId, cur) {
+  var excl = selfId ? descendants(selfId) : new Set;
+  if (selfId) excl.add(selfId);
+  PP.excl = excl;
+  PP.exp = new Set;
+  PP.open = false;
+  setParent(cur || "");
+  renderParentPick();
  }
  function noteRow(n, la) {
   var row = paint(el("div", "brow is-notiz"), n.tags, "notiz");
@@ -10067,6 +10204,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
    termin: t.id
   });
  });
+ $("#parentBtn").addEventListener("click", toggleParentPick);
  $("#terminOff").addEventListener("click", function() {
   S.formTermin = null;
   renderTerminRow();
