@@ -3476,7 +3476,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   });
   if (list.length > shown.length) c.append(el("p", "dn-more", "+ " + (list.length - shown.length) + " weitere"));
   if (!list.length) {
-   c.append(el("p", "dn-none", isToday ? all.length ? "Heute keine Termine mehr." : "Heute keine Termine." : "Keine Termine."));
+   var nextShown = false;
    if (isToday) {
     for (var d = 1; d <= 7; d++) {
      var nd = addDays(t, d), nx = dashTermine(nd);
@@ -3491,9 +3491,11 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
       openSheet(f.id);
      });
      c.append(r2);
+     nextShown = true;
      break;
     }
    }
+   if (!nextShown) c.append(el("p", "dn-none", isToday ? all.length ? "Heute keine Termine mehr." : "Heute keine Termine." : "Keine Termine."));
   }
   return c;
  }
