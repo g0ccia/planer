@@ -10747,7 +10747,30 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
    return x.trim();
   }).slice(0, 5) : [];
  }
- /* Bilder und Sticker auf der Seite (seit 21.11.2026): imgs = [{id, x, y, w, h, c: [x, y, b, h] als Anteil des Bilds}] */
+ /* Bilder und Sticker auf der Seite (seit 21.11.2026): imgs = [{id, x, y, w, h, c: [x, y, b, h] als Anteil des Bilds, r: Drehung in Grad um die Mitte}] */
+ function inkImgC(im) {
+  return [ im.x + im.w / 2, im.y + im.h / 2 ];
+ }
+ function inkRotP(pt, c, a) {
+  if (!a) return pt;
+  var co = Math.cos(a), si = Math.sin(a), dx = pt[0] - c[0], dy = pt[1] - c[1];
+  return [ c[0] + dx * co - dy * si, c[1] + dx * si + dy * co ];
+ }
+ function inkImgLocal(im, pt) {
+  return im.r ? inkRotP(pt, inkImgC(im), -im.r * Math.PI / 180) : pt;
+ }
+ function inkRotKnob(im) {
+  var k = INK.k, c = inkImgC(im), a = (im.r || 0) * Math.PI / 180, d = 30 / k;
+  var top = inkRotP([ c[0], im.y - d ], c, a);
+  if (top[1] >= 10 / k) return {
+   p: top,
+   e: inkRotP([ c[0], im.y ], c, a)
+  };
+  return {
+   p: inkRotP([ c[0], im.y + im.h + d ], c, a),
+   e: inkRotP([ c[0], im.y + im.h ], c, a)
+  };
+ }
  var INK_IMG = {};
  function inkImgsClone(a) {
   return JSON.parse(JSON.stringify(a || []));
@@ -10764,6 +10787,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
     h: +im.h
    };
    if (Array.isArray(im.c) && im.c.length === 4) o.c = im.c.map(Number);
+   if (+im.r) o.r = +im.r;
    return o;
   });
  }
@@ -10803,22 +10827,63 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
  }
  function inkImgsDraw(ctx, imgs) {
   imgs.forEach(function(im) {
-   var c = INK_IMG[im.id], cr = im.c || [ 0, 0, 1, 1 ];
-   if (c && c.ok && c.el.naturalWidth) {
-    var nw = c.el.naturalWidth, nh = c.el.naturalHeight;
-    ctx.drawImage(c.el, cr[0] * nw, cr[1] * nh, cr[2] * nw, cr[3] * nh, im.x, im.y, im.w, im.h);
-   } else {
-    inkImgLoad(im.id);
-    ctx.save();
-    ctx.fillStyle = "rgba(70, 45, 35, 0.07)";
-    ctx.fillRect(im.x, im.y, im.w, im.h);
-    ctx.restore();
+   ctx.save();
+   if (im.r) {
+    var m = inkImgC(im);
+    ctx.translate(m[0], m[1]);
+    ctx.rotate(im.r * Math.PI / 180);
+    ctx.translate(-m[0], -m[1]);
    }
+   inkImgDraw1(ctx, im);
+   ctx.restore();
   });
  }
+ function inkImgDraw1(ctx, im) {
+  var c = INK_IMG[im.id], cr = im.c || [ 0, 0, 1, 1 ];
+  if (c && c.ok && c.el.naturalWidth) {
+   var nw = c.el.naturalWidth, nh = c.el.naturalHeight;
+   ctx.drawImage(c.el, cr[0] * nw, cr[1] * nh, cr[2] * nw, cr[3] * nh, im.x, im.y, im.w, im.h);
+  } else {
+   inkImgLoad(im.id);
+   ctx.save();
+   ctx.fillStyle = "rgba(70, 45, 35, 0.07)";
+   ctx.fillRect(im.x, im.y, im.w, im.h);
+   ctx.restore();
+  }
+ }
  function inkSelDraw(ctx, im) {
-  var k = INK.k, r = 6.5 / k;
+  var k = INK.k, r = 6.5 / k, kn = inkRotKnob(im), ea = -.3 * Math.PI, er = 5 / k;
   ctx.save();
+  ctx.strokeStyle = "#E8742A";
+  ctx.fillStyle = "#FFFDFA";
+  ctx.lineWidth = 1.5 / k;
+  ctx.beginPath();
+  ctx.moveTo(kn.e[0], kn.e[1]);
+  ctx.lineTo(kn.p[0], kn.p[1]);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(kn.p[0], kn.p[1], 10 / k, 0, 2 * Math.PI);
+  ctx.fill();
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(kn.p[0], kn.p[1], er, ea, ea + 1.55 * Math.PI);
+  ctx.stroke();
+  var hx = kn.p[0] + er * Math.cos(ea), hy = kn.p[1] + er * Math.sin(ea);
+  ctx.fillStyle = "#E8742A";
+  ctx.beginPath();
+  ctx.moveTo(hx + 3.2 / k, hy - .4 / k);
+  ctx.lineTo(hx - 1.2 / k, hy - 3.4 / k);
+  ctx.lineTo(hx - 1 / k, hy + 2.4 / k);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+  ctx.save();
+  if (im.r) {
+   var m = inkImgC(im);
+   ctx.translate(m[0], m[1]);
+   ctx.rotate(im.r * Math.PI / 180);
+   ctx.translate(-m[0], -m[1]);
+  }
   ctx.strokeStyle = "#E8742A";
   ctx.lineWidth = 1.5 / k;
   ctx.setLineDash([ 5 / k, 4 / k ]);
@@ -10836,6 +10901,9 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   ctx.restore();
  }
  function inkImgHandle(im, pt) {
+  var kn = inkRotKnob(im);
+  if (Math.hypot(pt[0] - kn.p[0], pt[1] - kn.p[1]) <= 18 / INK.k) return "rot";
+  pt = inkImgLocal(im, pt);
   var r = 16 / INK.k, xs = [ im.x, im.x + im.w / 2, im.x + im.w ], ys = [ im.y, im.y + im.h / 2, im.y + im.h ];
   for (var i = 0; i < 3; i++) for (var j = 0; j < 3; j++) {
    if (i === 1 && j === 1) continue;
@@ -10848,6 +10916,23 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   if (!d || !im) return;
   var dx = pt[0] - d.p0[0], dy = pt[1] - d.p0[1], o = d.o, MIN = 24;
   if (Math.abs(dx) + Math.abs(dy) > 1) d.moved = true;
+  var c0 = [ o.x + o.w / 2, o.y + o.h / 2 ], ra = (o.r || 0) * Math.PI / 180;
+  if (d.h === "rot") {
+   var deg = (o.r || 0) + (Math.atan2(pt[1] - c0[1], pt[0] - c0[0]) - Math.atan2(d.p0[1] - c0[1], d.p0[0] - c0[0])) * 180 / Math.PI;
+   deg = ((deg % 360) + 540) % 360 - 180;
+   var sn = Math.round(deg / 90) * 90;
+   if (Math.abs(deg - sn) < 4) deg = sn;
+   deg = Math.round(deg * 10) / 10;
+   if (deg <= -180) deg += 360;
+   if (deg) im.r = deg; else delete im.r;
+   inkDraw();
+   return;
+  }
+  if (d.h && ra) {
+   var l1 = inkRotP(pt, c0, -ra), l0 = inkRotP(d.p0, c0, -ra);
+   dx = l1[0] - l0[0];
+   dy = l1[1] - l0[1];
+  }
   if (!d.h) {
    im.x = r1(o.x + dx);
    im.y = r1(o.y + dy);
@@ -10888,6 +10973,11 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
     return Math.round(v * 1e4) / 1e4;
    });
    if (c[0] === 0 && c[1] === 0 && c[2] === 1 && c[3] === 1) delete im.c; else im.c = c;
+  }
+  if (d.h && ra) {
+   var cw = inkRotP(inkImgC(im), c0, ra);
+   im.x = r1(cw[0] - im.w / 2);
+   im.y = r1(cw[1] - im.h / 2);
   }
   inkDraw();
  }
@@ -11016,7 +11106,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
     }
     inkDraw();
     renderInkTools();
-    inkMsg("Bild ziehen = verschieben, Ecken = Größe, Seitenmitten = zuschneiden.");
+    inkMsg("Bild ziehen = verschieben, Ecken = Größe, Seitenmitten = zuschneiden, Kreis = drehen.");
    });
   }).catch(function() {
    if (INK === st) inkMsg("Das Bild ließ sich nicht einfügen. Versuch es nochmal.", true);
@@ -11145,7 +11235,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   inkStkRemember(it);
   inkDraw();
   renderInkTools();
-  inkMsg("Sticker ziehen = verschieben, Ecken = Größe, Seitenmitten = zuschneiden.");
+  inkMsg("Sticker ziehen = verschieben, Ecken = Größe, Seitenmitten = zuschneiden, Kreis = drehen.");
  }
  function inkPickImage() {
   var fi = $("#inkFile");
@@ -11999,8 +12089,8 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
     if (e.pointerType === "touch" && palm(e)) return;
     var pq = inkPt(e), so = INK.sel != null ? INK.imgs[INK.sel] : null, hd = so ? inkImgHandle(so, pq) : null, hi = -1;
     if (!hd) for (var q = INK.imgs.length - 1; q >= 0; q--) {
-     var iq = INK.imgs[q];
-     if (pq[0] >= iq.x && pq[0] <= iq.x + iq.w && pq[1] >= iq.y && pq[1] <= iq.y + iq.h) {
+     var iq = INK.imgs[q], lq = inkImgLocal(iq, pq);
+     if (lq[0] >= iq.x && lq[0] <= iq.x + iq.w && lq[1] >= iq.y && lq[1] <= iq.y + iq.h) {
       hi = q;
       break;
      }
@@ -12020,6 +12110,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
        y: oq.y,
        w: oq.w,
        h: oq.h,
+       r: oq.r || 0,
        c: (oq.c || [ 0, 0, 1, 1 ]).slice()
       },
       before: inkImgsClone(INK.imgs),
@@ -12329,7 +12420,8 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
    for (var j = 1; j < s.p.length; j += 2) if (s.p[j] + s.s > b) b = s.p[j] + s.s;
   });
   (st.imgs || []).forEach(function(im) {
-   if (im.y + im.h > b) b = im.y + im.h;
+   var ra = (im.r || 0) * Math.PI / 180, yb = im.y + im.h / 2 + Math.abs(im.w / 2 * Math.sin(ra)) + Math.abs(im.h / 2 * Math.cos(ra));
+   if (yb > b) b = yb;
   });
   var h = Math.min(st.h, Math.max(w * .4, b + INK_GAP));
   var f = Math.min(3, 1600 / w);
