@@ -1184,6 +1184,17 @@ body::before {
 }
 .wblk.tc-multi.is-done { --g-a: transparent; --g-b: transparent; }
 .hint.tc-multi .dot { background: linear-gradient(135deg, var(--k-c) 50%, var(--k-c2) 50%); }
+.act.tc-multi { border-left-color: transparent; }
+.act.tc-multi::before {
+  content: ""; position: absolute; left: -2px; top: 0; bottom: 0; width: 2px; pointer-events: none;
+  background: linear-gradient(to bottom, var(--k-c), var(--k-c2));
+  -webkit-mask: radial-gradient(circle, #000 0.9px, transparent 1.15px) center top / 2px 4px repeat-y;
+  mask: radial-gradient(circle, #000 0.9px, transparent 1.15px) center top / 2px 4px repeat-y;
+}
+@supports (color: color-mix(in srgb, red 50%, blue)) {
+  .act.tc-multi { background: linear-gradient(100deg, color-mix(in srgb, var(--tc) 11%, transparent) 25%, color-mix(in srgb, var(--tc2) 11%, transparent)); }
+}
+.wact.tc-multi { background: linear-gradient(to bottom, var(--k-c), var(--k-c2)); }
 .wbar.tc-multi:not(.is-past), .mbar.tc-multi:not(.is-past), .wk-hint.tc-multi:not(.is-past):not(.is-notiz) { background: linear-gradient(100deg, var(--tc) 30%, var(--tc2)); }
 .rep { display: flex; flex-direction: column; gap: 4px; }
 .rep-row { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); gap: 6px; }
