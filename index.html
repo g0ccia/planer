@@ -1655,6 +1655,27 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
 .ink-msg { flex: none; margin: 0; padding: 6px 12px 8px; font-size: 12.5px; line-height: 1.35; color: var(--fg-soft); text-align: center; border-top: 1px solid var(--line); }
 .ink-msg.warn { color: var(--now); }
 .ink-msg.off { color: transparent; }
+.ink-stk {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 5; height: min(62%, 480px);
+  display: flex; flex-direction: column; background: var(--surface);
+  border-top: 1px solid var(--line-strong); border-radius: 14px 14px 0 0; box-shadow: 0 -8px 30px var(--shadow);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.ink-stk-head { flex: none; display: flex; align-items: center; gap: 6px; padding: 8px 8px 6px 10px; }
+.ink-stk-tabs { flex: 1 1 auto; min-width: 0; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.ink-stk-tabs::-webkit-scrollbar { display: none; }
+.ink-stk-tabs button {
+  flex: none; border: 1px solid var(--line-strong); background: transparent; border-radius: 999px; padding: 6px 11px 5px;
+  font: 600 10.5px/1 var(--f-cond); letter-spacing: 0.06em; text-transform: uppercase; color: var(--fg-soft);
+}
+.ink-stk-tabs button[aria-pressed="true"] { background: var(--orange); border-color: var(--orange); color: var(--on-accent); }
+.ink-stk-x { flex: none; width: 32px; height: 32px; border: 0; background: transparent; color: var(--fg-soft); font-size: 22px; line-height: 1; }
+.ink-stk-grid {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(74px, 1fr)); gap: 8px; padding: 6px 10px 14px; align-content: start;
+}
+.ink-stk-grid button { aspect-ratio: 1; padding: 6px; border: 0; border-radius: 10px; background: var(--bg); display: flex; align-items: center; justify-content: center; }
+.ink-stk-grid img { display: block; max-width: 100%; max-height: 100%; object-fit: contain; }
 .ink-imgbar {
   position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(46px + env(safe-area-inset-bottom, 0px)); z-index: 3;
   display: flex; gap: 6px; padding: 5px; border-radius: 999px;
@@ -1662,7 +1683,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
 }
 .ink-imgbar button {
   border: 0; border-radius: 999px; padding: 7px 14px 6px; background: var(--bg); color: var(--fg);
-  font: 600 11px/1 var(--f-cond); letter-spacing: 0.06em; text-transform: uppercase;
+  font: 600 11px/1 var(--f-cond); letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap;
 }
 .ink-imgbar button:disabled { opacity: 0.35; }
 .ink-paper {
@@ -2165,7 +2186,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   function warm() {
     var need = new Set(), now = Date.now();
     store.forEach(function (v, p) {
-      if (collOf(p) === "diarium") return;
+      if (collOf(p) === "diarium" || collOf(p) === "stickers") return;
       var m = JSON.stringify(v).match(/"[0-9a-f]{32}"/g);
       if (m) m.forEach(function (x) {
         var id = x.slice(1, -1), e = urls.get(id);
@@ -11136,6 +11157,131 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
    if (INK === st) inkMsg("Das Bild ließ sich nicht einfügen. Versuch es nochmal.", true);
   });
  }
+ var INK_STK_TAB = null;
+ function inkStkRecent() {
+  try {
+   var r = JSON.parse(localStorage.getItem("planer.stk") || "[]");
+   return Array.isArray(r) ? r.filter(function(x) {
+    return x && x.id && x.t;
+   }) : [];
+  } catch (e) {
+   return [];
+  }
+ }
+ function inkStkRemember(it) {
+  var r = inkStkRecent().filter(function(x) {
+   return x.id !== it.id;
+  });
+  r.unshift({
+   id: it.id,
+   t: it.t,
+   w: it.w,
+   h: it.h
+  });
+  try {
+   localStorage.setItem("planer.stk", JSON.stringify(r.slice(0, 30)));
+  } catch (e) {}
+ }
+ function inkStkClose() {
+  var p = $("#inkStk");
+  if (p) p.remove();
+ }
+ function inkStkOpen() {
+  if (!INK || !S.stickers || !S.stickers.length) return;
+  inkStkClose();
+  var p = el("div", "ink-stk");
+  p.id = "inkStk";
+  p.setAttribute("role", "dialog");
+  p.setAttribute("aria-label", "Sticker");
+  var head = el("div", "ink-stk-head"), tabs = el("div", "ink-stk-tabs"), x = el("button", "ink-stk-x", "×"), grid = el("div", "ink-stk-grid");
+  x.type = "button";
+  x.setAttribute("aria-label", "Schließen");
+  x.addEventListener("click", inkStkClose);
+  var recent = inkStkRecent(), sets = (recent.length ? [ {
+   id: "_recent",
+   name: "Zuletzt",
+   items: recent
+  } ] : []).concat(S.stickers);
+  if (!sets.some(function(s) {
+   return s.id === INK_STK_TAB;
+  })) INK_STK_TAB = sets[0].id;
+  var show = function() {
+   tabs.querySelectorAll("button").forEach(function(b) {
+    b.setAttribute("aria-pressed", b.dataset.id === INK_STK_TAB ? "true" : "false");
+   });
+   var set = sets.filter(function(s) {
+    return s.id === INK_STK_TAB;
+   })[0];
+   grid.replaceChildren();
+   grid.scrollTop = 0;
+   (set ? set.items : []).forEach(function(it) {
+    var b = el("button");
+    b.type = "button";
+    b.setAttribute("aria-label", "Sticker einfügen");
+    var im = el("img");
+    im.alt = "";
+    im.decoding = "async";
+    im.loading = "lazy";
+    im.src = blobUrl(it.t || it.id);
+    b.append(im);
+    b.addEventListener("click", function() {
+     inkStkClose();
+     inkInsertSticker(it);
+    });
+    grid.append(b);
+   });
+  };
+  sets.forEach(function(s) {
+   var b = el("button", null, s.name);
+   b.type = "button";
+   b.dataset.id = s.id;
+   b.addEventListener("click", function() {
+    INK_STK_TAB = s.id;
+    show();
+   });
+   tabs.append(b);
+  });
+  head.append(tabs, x);
+  p.append(head, grid);
+  $("#ink").append(p);
+  show();
+  var cur = tabs.querySelector('[aria-pressed="true"]');
+  if (cur && cur.scrollIntoView) cur.scrollIntoView({
+   block: "nearest",
+   inline: "center"
+  });
+ }
+ function inkInsertSticker(it) {
+  if (!INK) return;
+  var page = INK.pages[INK.pi];
+  inkImgLoad(it.id);
+  var pw = page.w, ph = page.h || pw * 1.3, a = (it.h || 1) / (it.w || 1), w = pw * .4, h = w * a;
+  if (h > ph * .45) {
+   h = ph * .45;
+   w = h / a;
+  }
+  var before = inkImgsClone(page.imgs);
+  page.imgs.push({
+   id: it.id,
+   x: r1((pw - w) / 2),
+   y: r1(Math.max(0, (ph - h) / 2)),
+   w: r1(w),
+   h: r1(h)
+  });
+  page.undo.push({
+   a: "img",
+   before: before,
+   after: inkImgsClone(page.imgs)
+  });
+  page.redo = [];
+  page.changed = true;
+  INKP.tool = "img";
+  INK.sel = page.imgs.length - 1;
+  inkStkRemember(it);
+  inkDraw();
+  renderInkTools();
+  inkMsg("Sticker ziehen = verschieben, Ecken = Größe, Seitenmitten = zuschneiden.");
+ }
  function inkPickImage() {
   var fi = $("#inkFile");
   if (!fi) {
@@ -11157,6 +11303,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   var old = $("#inkImgBar");
   if (!INK || INKP.tool !== "img") {
    if (old) old.remove();
+   inkStkClose();
    return;
   }
   var b = old || el("div", "ink-imgbar");
@@ -11169,7 +11316,14 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   del.type = "button";
   del.disabled = INK.sel == null;
   del.addEventListener("click", inkImgRemove);
-  b.append(add, del);
+  if (S.stickers && S.stickers.length) {
+   var stk = el("button", null, "Sticker");
+   stk.type = "button";
+   stk.addEventListener("click", function() {
+    inkStkOpen();
+   });
+   b.append(add, stk, del);
+  } else b.append(add, del);
   if (!old) $("#ink").append(b);
  }
  function inkPromptDraw(ctx, w, txt, kind) {
@@ -11903,7 +12057,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
     INK.sel = null;
    } else {
     INKP.tool = "img";
-    if (!INK.imgs.length) inkPickImage(); else inkMsg("Bild antippen zum Bearbeiten. „+ Bild“ fügt ein neues ein.");
+    inkMsg(INK.imgs.length ? "Bild antippen zum Bearbeiten. Unten: neues Foto oder Sticker." : "Unten: Foto oder Sticker einfügen.");
    }
    inkDraw();
    renderInkTools();
@@ -12769,6 +12923,20 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
     renderTrack();
     if (typeof renderBooks === "function") renderBooks();
    }
+  }, function() {});
+  db.collection("stickers").onSnapshot(function(snap) {
+   var l = [];
+   snap.docs.forEach(function(d) {
+    var v = d.data();
+    if (v && Array.isArray(v.items) && v.items.length) l.push(Object.assign({
+     id: d.id
+    }, v));
+   });
+   l.sort(function(a, b) {
+    return (a.order || 0) - (b.order || 0) || String(a.name).localeCompare(String(b.name), "de");
+   });
+   S.stickers = l;
+   if (INK) renderInkTools();
   }, function() {});
   db.collection("diarium").onSnapshot(function(snap) {
    var m = new Map;
