@@ -7987,6 +7987,14 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   }
   return frag;
  }
+ function openBelow(id) {
+  var hit = false;
+  descendants(id).forEach(function(x) {
+   var c = S.items.get(x);
+   if (c && isTask(c) && !c.done) hit = true;
+  });
+  return hit;
+ }
  function entryBlock(e) {
   var parent = parentOf(e);
   var art = paint(el("article", "nd-entry"), e.tags && e.tags.length ? e.tags : parent && parent.tags, "notiz");
@@ -8015,7 +8023,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   var eph = photoStrip(e);
   if (eph) art.append(eph);
   sub.filter(function(c) {
-   return c.kind !== "notiz";
+   return c.kind !== "notiz" && !(isPast(c) && !openBelow(c.id));
   }).sort(function(a, b) {
    return (a.done ? 1 : 0) - (b.done ? 1 : 0) || entrySort(a, b);
   }).forEach(function(c) {
