@@ -1655,6 +1655,17 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
 .ink-msg { flex: none; margin: 0; padding: 6px 12px 8px; font-size: 12.5px; line-height: 1.35; color: var(--fg-soft); text-align: center; border-top: 1px solid var(--line); }
 .ink-msg.warn { color: var(--now); }
 .ink-msg.off { color: transparent; }
+.ink-paper {
+  position: fixed; z-index: 70; width: 246px; box-sizing: border-box;
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 10px;
+  background: var(--surface); border: 1px solid var(--line-strong); border-radius: 12px; box-shadow: 0 10px 30px var(--shadow);
+}
+.ink-paper button {
+  display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 5px 2px; border: 0; border-radius: 8px;
+  background: transparent; color: var(--fg-soft); font: 600 10px/1.15 var(--f-cond); letter-spacing: 0.03em; text-align: center;
+}
+.ink-paper canvas { display: block; width: 60px; height: 45px; border-radius: 4px; box-shadow: 0 0 0 1px var(--line-strong); }
+.ink-paper button[aria-checked="true"] { background: var(--bg); box-shadow: inset 0 0 0 1.5px var(--orange); color: var(--fg); }
 .ink-pg { min-width: 38px; text-align: center; font-size: 13px; color: var(--fg-soft); font-variant-numeric: tabular-nums; }
 .att-pen {
   position: absolute; left: 7px; bottom: 7px; width: 22px; height: 22px; border-radius: 50%;
@@ -2143,6 +2154,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
  var ICON_ERASE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15.2 4.3l4.5 4.5a1.6 1.6 0 0 1 0 2.3L11 19.8H6.6l-2.3-2.3a1.6 1.6 0 0 1 0-2.3l8.6-8.6"/><path d="M12.9 6.6l2.3-2.3"/><path d="M9 10.5l4.5 4.5"/><path d="M11 19.8h9"/></svg>';
  var ICON_UNDO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>';
  var ICON_REDO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 14l5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg>';
+ var ICON_PROMPT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.7.6 1.1 1.3 1.1 2.2h5c0-.9.4-1.6 1.1-2.2A6 6 0 0 0 12 3z"/></svg>';
  var ICON_LINES = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>';
  var ICON_HAND = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 13V5.8a1.6 1.6 0 0 1 3.2 0V11"/><path d="M11.2 10.5V4.6a1.6 1.6 0 0 1 3.2 0v6.2"/><path d="M14.4 11V6.4a1.6 1.6 0 0 1 3.2 0V15a6.5 6.5 0 0 1-6.5 6.5h-.6a5.6 5.6 0 0 1-4.4-2.1l-2.6-3.3a1.6 1.6 0 0 1 2.4-2.1L8 16"/></svg>';
  var ICON_UP = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5"/><path d="M6 11l6-6 6 6"/></svg>';
@@ -10682,6 +10694,45 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
  var INK_COL = [ [ "#2B1C18", "Tinte" ], [ "#2E5C9E", "Blau" ], [ "#C23B2E", "Rot" ], [ "#2C7A57", "Grün" ], [ "#DD6A1F", "Orange" ] ];
  var INK_SZ = [ [ 1.6, "fein", 4 ], [ 2.8, "mittel", 7 ], [ 5.5, "dick", 11 ] ];
  var INK_PAPER = "#FFFDFA", INK_RULE = "rgba(70, 45, 35, 0.14)", INK_GAP = 34;
+ /* Papiervorlagen (seit 21.11.2026): lines bleibt true/false für alte Seiten, sonst die Art als Text */
+ var INK_PAPERS = [ [ false, "Blanko" ], [ "lines", "Linien" ], [ "narrow", "Eng liniert" ], [ "margin", "Linien mit Rand" ], [ "grid", "Kariert" ], [ "dots", "Punktraster" ] ];
+ var INK_MARGIN = "rgba(190, 80, 80, 0.4)", INK_MARGIN_X = 34, INK_SQ = 22;
+ function inkPaperKind(l) {
+  return l === false || l === null ? false : typeof l === "string" ? l : "lines";
+ }
+ function inkPaperName(l) {
+  var k = inkPaperKind(l), n = "Linien";
+  INK_PAPERS.forEach(function(p) {
+   if (p[0] === k) n = p[1];
+  });
+  return n;
+ }
+ function inkPrompts() {
+  var d = S.days && S.days.get(today()), p = d && d.prompts;
+  return Array.isArray(p) ? p.filter(function(x) {
+   return typeof x === "string" && x.trim();
+  }).map(function(x) {
+   return x.trim();
+  }).slice(0, 5) : [];
+ }
+ function inkPromptDraw(ctx, w, txt, kind) {
+  var x = kind === "margin" ? INK_MARGIN_X + 8 : 12, maxW = w - x - 12, lh = 16, y = 21;
+  ctx.save();
+  ctx.fillStyle = "rgba(72, 58, 110, 0.82)";
+  ctx.font = "italic 400 13px Lora, Georgia, serif";
+  ctx.textBaseline = "alphabetic";
+  var words = String(txt).split(/\s+/), line = "", n = 0;
+  for (var i = 0; i < words.length && n < 3; i++) {
+   var t = line ? line + " " + words[i] : words[i];
+   if (line && ctx.measureText(t).width > maxW) {
+    ctx.fillText(n === 2 ? line + " …" : line, x, y + n * lh);
+    n++;
+    line = words[i];
+   } else line = t;
+  }
+  if (n < 3 && line) ctx.fillText(line, x, y + n * lh);
+  ctx.restore();
+ }
  /* Stiftarten: t = Kennung im Strich (fehlt beim normalen Stift) */
  var INK_KINDS = [ {
   k: "kuli",
@@ -10718,7 +10769,9 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   set: {},
   tool: "pen",
   finger: true,
-  fingerSet: false
+  fingerSet: false,
+  paper: "lines",
+  ruled: "lines"
  };
  INK_KINDS.forEach(function(k) {
   INKP.set[k.k] = {
@@ -10745,6 +10798,8 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
     if (v && v.size) INKP.set[k].size = v.size;
    });
    if (inkSaved.kind && INKP.set[inkSaved.kind]) INKP.kind = inkSaved.kind;
+   if (inkSaved.paper !== undefined) INKP.paper = inkSaved.paper;
+   if (inkSaved.ruled) INKP.ruled = inkSaved.ruled;
   }
  } catch (e) {}
  function inkPrefsSave() {
@@ -10755,7 +10810,9 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
     kind: INKP.kind,
     set: INKP.set,
     finger: INKP.finger,
-    fingerSet: INKP.fingerSet
+    fingerSet: INKP.fingerSet,
+    paper: INKP.paper,
+    ruled: INKP.ruled
    }));
   } catch (e) {}
  }
@@ -10803,7 +10860,8 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
    w: base ? base.w : av.w,
    h: base ? base.h : av.h,
    page: true,
-   lines: lines !== false,
+   lines: lines === undefined ? INKP.paper === false ? false : inkPaperKind(INKP.paper) : lines === false ? false : inkPaperKind(lines),
+   prompt: "",
    strokes: [],
    undo: [],
    redo: [],
@@ -10816,7 +10874,8 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
    w: d.w,
    h: d.h > 0 ? d.h : 0,
    page: !!d.page,
-   lines: d.lines !== false,
+   lines: d.lines === false ? false : inkPaperKind(d.lines),
+   prompt: typeof d.prompt === "string" ? d.prompt : "",
    undo: [],
    redo: [],
    changed: false,
@@ -10864,7 +10923,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
    busy: false,
    armed: false
   };
-  [ "w", "h", "page", "lines", "strokes", "undo", "redo", "changed" ].forEach(function(key) {
+  [ "w", "h", "page", "lines", "prompt", "strokes", "undo", "redo", "changed" ].forEach(function(key) {
    Object.defineProperty(INK, key, {
     get: function() {
      return this.pages[this.pi][key];
@@ -11075,21 +11134,43 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   }
   ctx.stroke();
  }
- function inkPaint(ctx, f, w, h, strokes, lines) {
+ function inkPaint(ctx, f, w, h, strokes, lines, prompt) {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.fillStyle = INK_PAPER;
   ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
   ctx.setTransform(f, 0, 0, f, 0, 0);
-  if (lines) {
+  var pk = inkPaperKind(lines);
+  if (pk === "dots") {
+   ctx.fillStyle = "rgba(70, 45, 35, 0.34)";
+   ctx.beginPath();
+   for (var dy = INK_SQ; dy < h; dy += INK_SQ) for (var dx = INK_SQ; dx < w; dx += INK_SQ) {
+    ctx.moveTo(dx + 1.1, dy);
+    ctx.arc(dx, dy, 1.1, 0, 2 * Math.PI);
+   }
+   ctx.fill();
+  } else if (pk) {
+   var gap = pk === "grid" ? INK_SQ : pk === "narrow" ? Math.round(INK_GAP * .75) : INK_GAP;
    ctx.strokeStyle = INK_RULE;
    ctx.lineWidth = 1;
    ctx.beginPath();
-   for (var y = INK_GAP * 1.5; y < h; y += INK_GAP) {
+   for (var y = pk === "grid" ? gap : gap * 1.5; y < h; y += gap) {
     ctx.moveTo(0, y);
     ctx.lineTo(w, y);
    }
+   if (pk === "grid") for (var x = gap; x < w; x += gap) {
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, h);
+   }
    ctx.stroke();
+   if (pk === "margin") {
+    ctx.strokeStyle = INK_MARGIN;
+    ctx.beginPath();
+    ctx.moveTo(INK_MARGIN_X, 0);
+    ctx.lineTo(INK_MARGIN_X, h);
+    ctx.stroke();
+   }
   }
+  if (prompt) inkPromptDraw(ctx, w, prompt, pk);
   strokes.forEach(function(s) {
    if (s.t === "m") inkStroke(ctx, s);
   });
@@ -11131,7 +11212,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   ctx.restore();
  }
  function inkDraw() {
-  if (INK) inkPaint($("#inkCv").getContext("2d"), INK.dpr * INK.k, INK.w, INK.h, INK.strokes, INK.lines);
+  if (INK) inkPaint($("#inkCv").getContext("2d"), INK.dpr * INK.k, INK.w, INK.h, INK.strokes, INK.lines, INK.prompt);
  }
  function inkPt(e) {
   var r = $("#inkCv").getBoundingClientRect();
@@ -11223,6 +11304,75 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
    sc.scrollTop = top;
   }
  }
+ function inkSetPaper(v) {
+  INK.lines = v;
+  INKP.paper = v;
+  if (v) INKP.ruled = v;
+  inkPrefsSave();
+  INK.changed = true;
+  inkDraw();
+  renderInkTools();
+ }
+ function inkLongPress(b, fn) {
+  var t = null;
+  var stop = function() {
+   if (t) {
+    clearTimeout(t);
+    t = null;
+   }
+  };
+  b.addEventListener("pointerdown", function() {
+   stop();
+   t = setTimeout(function() {
+    t = null;
+    b._long = true;
+    fn();
+   }, 450);
+  });
+  [ "pointerup", "pointerleave", "pointercancel" ].forEach(function(ev) {
+   b.addEventListener(ev, stop);
+  });
+  b.addEventListener("contextmenu", function(e) {
+   e.preventDefault();
+  });
+ }
+ function inkPaperMenu(anchor) {
+  var old = $("#inkPaper");
+  if (old) old.remove();
+  var m = el("div", "ink-paper");
+  m.id = "inkPaper";
+  m.setAttribute("role", "menu");
+  m.setAttribute("aria-label", "Papier wählen");
+  var cur = INK.lines ? inkPaperKind(INK.lines) : false;
+  INK_PAPERS.forEach(function(pp) {
+   var b = el("button");
+   b.type = "button";
+   b.setAttribute("role", "menuitemradio");
+   b.setAttribute("aria-checked", cur === pp[0] ? "true" : "false");
+   var pv = document.createElement("canvas");
+   pv.width = 120;
+   pv.height = 90;
+   inkPaint(pv.getContext("2d"), .5, 240, 180, [], pp[0], "");
+   b.append(pv, el("span", null, pp[1]));
+   b.addEventListener("click", function() {
+    m.remove();
+    inkSetPaper(pp[0]);
+    inkMsg("Papier: " + pp[1] + ". Kurz tippen schaltet es aus und wieder an.");
+   });
+   m.append(b);
+  });
+  var r = anchor.getBoundingClientRect(), mw = 246;
+  m.style.top = Math.round(r.bottom + 6) + "px";
+  m.style.left = Math.max(8, Math.min(window.innerWidth - 8 - mw, Math.round(r.left + r.width / 2 - mw / 2))) + "px";
+  $("#ink").append(m);
+  setTimeout(function() {
+   document.addEventListener("pointerdown", function close(e) {
+    if (m.contains(e.target)) return;
+    m.remove();
+    document.removeEventListener("pointerdown", close, true);
+   }, true);
+  }, 0);
+ }
  function renderInkTools() {
   var bar = $("#inkTools"), pager = $("#inkPager");
   bar.replaceChildren();
@@ -11275,12 +11425,27 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
    INKP.tool = INKP.tool === "erase" ? "pen" : "erase";
    renderInkTools();
   }), mk("", "Rückgängig", ICON_UNDO, null, inkUndo, !INK.undo.length), mk("", "Wiederholen", ICON_REDO, null, inkRedo, !INK.redo.length));
-  g4.append(mk("", "Linien", ICON_LINES, INK.lines, function() {
-   INK.lines = !INK.lines;
+  var lb = mk("", "Papier: " + (INK.lines ? inkPaperName(INK.lines) : "Blanko") + " (lange drücken: Papier wählen)", ICON_LINES, !!INK.lines, function() {
+   if (lb._long) {
+    lb._long = false;
+    return;
+   }
+   inkSetPaper(INK.lines ? false : INKP.ruled || "lines");
+  });
+  inkLongPress(lb, function() {
+   inkPaperMenu(lb);
+  });
+  g4.append(lb);
+  if (inkPrompts().length || INK.prompt) g4.append(mk("", INK.prompt ? "Impuls wechseln oder entfernen" : "Impuls von Claude auf die Seite", ICON_PROMPT, !!INK.prompt, function() {
+   var list = inkPrompts(), i = list.indexOf(INK.prompt);
+   INK.prompt = i < 0 ? INK.prompt ? "" : list[0] || "" : list[i + 1] || "";
    INK.changed = true;
    inkDraw();
    renderInkTools();
-  }), mk("", INKP.finger ? "Finger malt mit" : "Finger scrollt, nur der Stift malt", ICON_HAND, INKP.finger, function() {
+   var j = list.indexOf(INK.prompt);
+   inkMsg(!INK.prompt ? "Impuls entfernt." : list.length > 1 ? "Impuls " + (j + 1) + " von " + list.length + ". Nochmal tippen = " + (j + 1 < list.length ? "nächster." : "entfernen.") : "Nochmal tippen = Impuls entfernen.");
+  }));
+  g4.append(mk("", INKP.finger ? "Finger malt mit" : "Finger scrollt, nur der Stift malt", ICON_HAND, INKP.finger, function() {
    INKP.finger = !INKP.finger;
    INKP.fingerSet = true;
    inkPrefsSave();
@@ -11542,6 +11707,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
    h: Math.ceil(p.h),
    page: !!p.page,
    lines: p.lines,
+   prompt: p.prompt || undefined,
    strokes: p.strokes.map(function(s) {
     var o = {
      c: s.c,
@@ -11587,7 +11753,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   var cv = document.createElement("canvas");
   cv.width = Math.round(w * f);
   cv.height = Math.round(h * f);
-  inkPaint(cv.getContext("2d"), f, w, h, st.strokes, st.lines);
+  inkPaint(cv.getContext("2d"), f, w, h, st.strokes, st.lines, st.prompt);
   return new Promise(function(ok, no) {
    cv.toBlob(function(bl) {
     if (!bl) return no(new Error("png"));
