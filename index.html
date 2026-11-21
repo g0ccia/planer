@@ -1869,6 +1869,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
       <button class="btn danger" type="button" id="delSeriesBtn" hidden>Ganze Serie löschen</button>
       <button class="btn" type="button" id="tmrBtn" hidden>Auf morgen</button>
       <button class="btn" type="button" id="tNoteBtn" hidden>+ Notiz</button>
+      <button class="btn" type="button" id="nTaskBtn" hidden>+ Aufgabe</button>
       <span class="spacer"></span>
       <button class="btn primary" type="submit" id="saveBtn">Speichern</button>
     </div>
@@ -6071,6 +6072,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   renderTerminRow();
   var ed = S.editing ? getEntry(S.editing) : null;
   $("#tNoteBtn").hidden = !(ed && ed.kind === "termin" && k === "termin");
+  $("#nTaskBtn").hidden = !(k === "notiz" && !S.formOcc);
   if ((k === "notiz" || k === "aktivitaet") && !S.editing && !S.noAutoTime && !$("#f-start").value && $("#f-date").value === today()) {
    $("#f-start").value = hhmm(Math.floor(nowMin() / 5) * 5);
   }
@@ -6582,6 +6584,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   document.body.style.overflow = $("#browse").hidden && $("#moneyView").hidden && $("#hoursView").hidden ? "" : "hidden";
   S.editing = null;
   S.afterCreate = null;
+  S.afterSave = null;
  }
  function readForm() {
   var k = kindVal();
@@ -6664,7 +6667,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   if (!S.db) return;
   var f = readForm();
   if (f.err) return formMsg(f.err);
-  var now = isoNow(), p, created = null, after = S.afterCreate;
+  var now = isoNow(), p, created = null, after = S.afterCreate, afterSave = S.afterSave;
   $("#saveBtn").disabled = true;
   var it = S.editing ? getEntry(S.editing) : null;
   var rep = f.repeat;
@@ -6872,6 +6875,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
    closeSheet();
    if (msg) toast(msg); else if (night) toast((label(f) || "Eintrag") + " geht über Mitternacht bis " + fmtMin(toMin(f.end)) + " am nächsten Tag."); else if (f.kind === "ausgabe" && rep && !(it && it.isOcc)) toast("Als Abo angelegt – kommt " + (rep === "yearly" ? "jedes Jahr" : "jeden Monat") + " automatisch."); else if (f.date && f.date !== S.date && f.kind !== "hinweis" && $("#browse").hidden) toast("Gespeichert für " + shortDate(f.date) + ".");
    if (created && after) after(created);
+   if (afterSave) afterSave(created || eid);
   }).catch(function(err) {
    $("#saveBtn").disabled = false;
    formMsg(errText(err));
@@ -10363,6 +10367,24 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
    tags: (t.tags || []).slice(),
    termin: t.id
   });
+ });
+ $("#nTaskBtn").addEventListener("click", function() {
+  if (kindVal() !== "notiz" || S.formOcc) return;
+  var tags = (readForm().tags || []).slice();
+  S.afterSave = function(nid) {
+   if (!nid) return;
+   (function go(n) {
+    if (!S.items.has(nid) && n < 40) return setTimeout(go, 50, n + 1);
+    openSheet(null, {
+     kind: "aufgabe",
+     date: "",
+     parent: nid,
+     tags: tags
+    });
+   })(0);
+  };
+  $("#form").requestSubmit();
+  if (!$("#saveBtn").disabled) S.afterSave = null;
  });
  $("#parentBtn").addEventListener("click", toggleParentPick);
  $("#terminOff").addEventListener("click", function() {
