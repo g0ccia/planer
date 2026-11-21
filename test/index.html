@@ -1158,6 +1158,32 @@ body::before {
   font: 600 10.5px/1 var(--f-cond); letter-spacing: 0.06em; color: var(--fg-soft);
 }
 .tagpick button[aria-pressed="true"] { background: var(--orange); border-color: var(--orange); color: var(--on-accent); }
+.tagpick button i { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 4px; vertical-align: 1px; }
+.tagpick button[aria-pressed="true"] i { box-shadow: 0 0 0 1px var(--on-accent); }
+/* Mehrere Tags: Verlauf aus den ersten beiden Tag-Farben (seit 21.11.2026) */
+.tc.tc-multi { --k-c2: var(--tc2); --k-tint2: var(--surface); --g-a: var(--k-tint); --g-b: var(--k-tint2); --bl: 2.5px; }
+@supports (color: color-mix(in srgb, red 50%, blue)) {
+  .tc.tc-multi {
+    --k-c2: color-mix(in srgb, var(--tc2) var(--tc-p), var(--tc-lift));
+    --k-tint2: color-mix(in srgb, var(--tc2) var(--tint-p), var(--bg));
+  }
+}
+.blk.tc.tc-multi:not(.is-fahrt):not(.is-notiz), .wblk.tc.tc-multi:not(.is-fahrt):not(.is-notiz), .mchip.tc.tc-multi, .ghost.tc.tc-multi {
+  border-left-color: transparent;
+  background: linear-gradient(to bottom, var(--k-c), var(--k-c2)) left top / var(--bl) 100% no-repeat border-box,
+              linear-gradient(100deg, var(--g-a) 25%, var(--g-b)) border-box;
+}
+.blk.is-termin.tc-multi { --bl: 3.5px; }
+.wblk.tc-multi, .mchip.tc-multi { --bl: 2px; }
+.wblk.is-termin.tc-multi, .ghost.tc-multi { --bl: 3px; }
+.blk.tc-multi.is-past, .wblk.tc-multi.is-past, .mchip.tc-multi.is-past { --g-a: var(--surface); --g-b: var(--surface); }
+@supports (color: color-mix(in srgb, red 50%, blue)) {
+  .blk.tc-multi.is-past, .wblk.tc-multi.is-past { --g-a: color-mix(in srgb, var(--tc) 3%, var(--bg)); --g-b: color-mix(in srgb, var(--tc2) 3%, var(--bg)); }
+  .mchip.tc-multi.is-past { --g-a: color-mix(in srgb, var(--tc) 4%, var(--bg)); --g-b: color-mix(in srgb, var(--tc2) 4%, var(--bg)); }
+}
+.wblk.tc-multi.is-done { --g-a: transparent; --g-b: transparent; }
+.hint.tc-multi .dot { background: linear-gradient(135deg, var(--k-c) 50%, var(--k-c2) 50%); }
+.wbar.tc-multi:not(.is-past), .mbar.tc-multi:not(.is-past), .wk-hint.tc-multi:not(.is-past):not(.is-notiz) { background: linear-gradient(100deg, var(--tc) 30%, var(--tc2)); }
 .rep { display: flex; flex-direction: column; gap: 4px; }
 .rep-row { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); gap: 6px; }
 .rep .tagpick { margin-top: 0; }
@@ -2933,11 +2959,26 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
    return node;
   }
   var c = tagColor(tags);
+  node.classList.remove("tc-multi");
+  node.style.removeProperty("--tc2");
   if (c) {
    node.style.setProperty("--tc", c);
    if (isLightHex(c)) node.classList.add("tc-light");
+   var c2 = secondTagColor(tags, c);
+   if (c2) {
+    node.style.setProperty("--tc2", c2);
+    node.classList.add("tc-multi");
+   }
   } else if (kind === "notiz" || kind === "aktivitaet") node.style.setProperty("--tc", "var(--fg-soft)");
   return node;
+ }
+ function secondTagColor(tags, first) {
+  if (!tags) return null;
+  for (var i = 0; i < tags.length; i++) {
+   var c = tagColor([ tags[i] ]);
+   if (c && String(c).toLowerCase() !== String(first).toLowerCase()) return c;
+  }
+  return null;
  }
  function hasImg(it) {
   return (Array.isArray(it && it.attachments) ? it.attachments : []).some(function(x) {
@@ -5946,23 +5987,20 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
  function renderTagPick() {
   var box = $("#tagPick");
   box.replaceChildren();
-  if (kindVal() !== "ausgabe") {
-   box.hidden = true;
-   return;
-  }
-  var cnt = {
+  var exp = kindVal() === "ausgabe";
+  var cnt = exp ? {
    Abo: 0
-  };
+  } : {};
   var add = function(tags) {
    (tags || []).forEach(function(t) {
-    if (t && t !== "Zahlung") cnt[t] = (cnt[t] || 0) + 1;
+    if (t && t !== "Zahlung" && (exp || t !== "JuMe")) cnt[t] = (cnt[t] || 0) + 1;
    });
   };
   S.items.forEach(function(i) {
-   if (i.kind === "ausgabe") add(i.tags);
+   if ((i.kind === "ausgabe") === exp && i.source !== "oura") add(i.tags);
   });
   S.series.forEach(function(sr) {
-   if (sr.kind === "ausgabe") add(sr.tags);
+   if ((sr.kind === "ausgabe") === exp) add(sr.tags);
   });
   var cur = $("#f-tags").value.split(",").map(function(x) {
    return x.trim();
@@ -5972,6 +6010,12 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   }).slice(0, 12).forEach(function(t) {
    var b = el("button", null, t);
    b.type = "button";
+   var tcol = tagColor([ t ]);
+   if (tcol) {
+    var dot = el("i");
+    dot.style.background = tcol;
+    b.prepend(dot);
+   }
    b.setAttribute("aria-pressed", cur.indexOf(t) >= 0 ? "true" : "false");
    b.addEventListener("click", function() {
     var now = $("#f-tags").value.split(",").map(function(x) {
@@ -11596,7 +11640,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   if (e.target === this || e.target.id === "lbBody") closeLightbox();
  });
  $("#f-tags").addEventListener("input", function() {
-  if (kindVal() === "ausgabe") renderTagPick();
+  renderTagPick();
  });
  $("#f-rfreq").addEventListener("change", renderRep);
  $("#f-rint").addEventListener("input", renderRep);
