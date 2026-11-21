@@ -6750,8 +6750,8 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   } else if (repCh && rule) {
    var sx = sr1, nx = nextOnly(sx), first = sx.from && sx.from > sx.anchor ? sx.from : sx.anchor;
    var times = {
-    start: f.start,
-    end: f.end
+    start: f.start || "",
+    end: f.end || ""
    };
    if (nx || it.date <= first) {
     var u2 = {
@@ -6819,8 +6819,8 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
     upd.due = f.date;
     upd.ov = upd.ov || {};
     upd.ov[f.date] = Object.assign(upd.ov[f.date] || {}, {
-     start: f.start,
-     end: f.end
+     start: f.start || "",
+     end: f.end || ""
     });
     p = S.db.doc("series/" + it.sid).update(upd);
    } else if (f.date !== it.date) {
@@ -6848,8 +6848,8 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
     if ((f.start || null) !== (it.start || null) || (f.end || null) !== (it.end || null)) {
      upd.ov = upd.ov || {};
      upd.ov[it.date] = Object.assign(upd.ov[it.date] || {}, {
-      start: f.start,
-      end: f.end
+      start: f.start || "",
+      end: f.end || ""
      });
     }
     p = S.db.doc("series/" + it.sid).update(upd);
