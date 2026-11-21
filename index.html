@@ -198,6 +198,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .otd-row::-webkit-scrollbar { display: none; }
 .otd-it { flex: none; display: flex; flex-direction: column; align-items: flex-start; gap: 5px; padding: 0; border: 0; background: none; text-align: left; }
 .otd-it img { display: block; width: 92px; height: 120px; object-fit: cover; object-position: top; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); }
+.otd-it img.is-ink, .lb-body img.is-ink { background: #FBF7F3; }
 .otd-cap { display: flex; align-items: baseline; gap: 4px; white-space: nowrap; }
 .otd-it b { font: 600 14px/1 var(--f-serif); color: var(--fg); }
 .otd-it small { font: 500 9px/1 var(--f-cond); color: var(--muted); }
@@ -3713,10 +3714,13 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   return c;
  }
  function otdList(ds) {
-  if (!ds || !S.diarium || !S.diarium.size) return [];
+  if (!ds) return [];
   var md = ds.slice(5), y = ds.slice(0, 4), out = [];
-  S.diarium.forEach(function(e) {
+  if (S.diarium) S.diarium.forEach(function(e) {
    if (e && e.md === md && String(e.date || "").slice(0, 4) < y && (Array.isArray(e.pages) && e.pages.length || otdText(e))) out.push(e);
+  });
+  otdPlaner(md, y).forEach(function(e) {
+   out.push(e);
   });
   out.sort(function(a, b) {
    return a.date < b.date ? -1 : a.date > b.date ? 1 : (a.time || "") < (b.time || "") ? -1 : 1;
@@ -3725,6 +3729,61 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
  }
  function otdText(e) {
   return String(e && e.text || "").trim();
+ }
+ function otdPlaner(md, y) {
+  var days = {};
+  if (!S.items) return [];
+  S.items.forEach(function(it) {
+   var d = String(it && it.date || "");
+   if (it.kind !== "aktivitaet" || d.slice(5) !== md || d.slice(0, 4) >= y) return;
+   var att = Array.isArray(it.attachments) ? it.attachments : [];
+   if (!att.length) return;
+   var day = days[d] || (days[d] = {
+    date: d,
+    md: md,
+    time: "",
+    heading: "",
+    planer: true,
+    texts: [],
+    covers: [],
+    pics: []
+   });
+   var jume = (it.tags || []).indexOf("JuMe") >= 0 || it.title === "JuMe";
+   att.forEach(function(a) {
+    if (!a || !a.id) return;
+    if (isText(a) && /markdown|\.md$/i.test((a.type || "") + " " + (a.name || ""))) {
+     if (jume) day.texts.push({
+      id: a.id,
+      kind: "md"
+     });
+    } else if (isImg(a)) (jume ? day.covers : day.pics).push({
+     id: a.id,
+     kind: a.ink ? "scan" : "foto",
+     ink: !!a.ink,
+     t: it.start || ""
+    });
+   });
+   if (jume && !day.heading) day.heading = String(it.note || "").split("\n")[0].trim();
+   if (jume && it.start) day.time = it.start;
+  });
+  return Object.keys(days).map(function(d) {
+   var e = days[d];
+   e.pics.sort(function(a, b) {
+    return a.t < b.t ? -1 : a.t > b.t ? 1 : 0;
+   });
+   e.pages = e.texts.concat(e.covers, e.pics);
+   delete e.texts;
+   delete e.covers;
+   delete e.pics;
+   return e;
+  }).filter(function(e) {
+   return e.pages.length;
+  });
+ }
+ function otdHasText(e) {
+  return !!otdText(e) || (Array.isArray(e.pages) ? e.pages : []).some(function(p) {
+   return p.kind === "md";
+  });
  }
  function otdPages(list) {
   var out = [];
@@ -3750,6 +3809,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
    video: 0
   };
   pages.forEach(function(p) {
+   if (p.kind === "md") return;
    n[p.kind === "foto" || p.kind === "video" ? p.kind : "scan"]++;
   });
   var out = [];
@@ -3777,6 +3837,17 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
    if (pg.e.heading) tb.append(el("h3", "otd-h", pg.e.heading));
    tb.append(document.createTextNode(otdText(pg.e)));
    body.append(tb);
+  } else if (pg.p.kind === "md") {
+   var mb = el("div", "lb-text is-md", "Lädt …"), want = LB.i;
+   body.append(mb);
+   blobGet(pg.p.id).then(function(r) {
+    if (!r.ok) throw new Error("http");
+    return r.text();
+   }).then(function(txt) {
+    if (LB.i === want) mb.replaceChildren(mdNodes(txt));
+   }).catch(function() {
+    mb.textContent = "Der Eintrag ließ sich hier nicht anzeigen. Öffne ihn über „In neuem Tab“.";
+   });
   } else if (pg.p.kind === "video") {
    var vd = document.createElement("video");
    vd.controls = true;
@@ -3789,7 +3860,8 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   } else {
    var im = document.createElement("img");
    im.src = url;
-   im.alt = "Diarium " + d.slice(8, 10) + "." + d.slice(5, 7) + "." + d.slice(0, 4) + ", " + pg.n + " von " + pg.of;
+   if (pg.p.ink) im.className = "is-ink";
+   im.alt = (pg.e.planer ? "Planer " : "Diarium ") + d.slice(8, 10) + "." + d.slice(5, 7) + "." + d.slice(0, 4) + ", " + pg.n + " von " + pg.of;
    body.append(im);
   }
   $("#lbOpen").href = url;
@@ -3832,21 +3904,22 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   list.forEach(function(e) {
    var b = el("button", "otd-it"), at = idx;
    b.type = "button";
-   b.setAttribute("aria-label", "Diarium " + String(e.date).slice(0, 4) + " öffnen");
+   b.setAttribute("aria-label", (e.planer ? "Tag " : "Diarium ") + String(e.date).slice(0, 4) + " öffnen");
    var pgs = Array.isArray(e.pages) ? e.pages : [], th = pgs.filter(function(p) {
-    return p.kind !== "video";
+    return p.kind !== "video" && p.kind !== "md";
    })[0] || (pgs[0] && pgs[0].poster ? {
     id: pgs[0].poster
    } : null);
    if (th) {
     var im = el("img");
+    if (th.ink) im.className = "is-ink";
     im.src = blobUrl(th.id);
     im.alt = "";
     im.decoding = "async";
     b.append(im);
    } else b.append(el("span", "otd-txt", (e.heading ? e.heading + " – " : "") + otdText(e).slice(0, 160)));
    var cap = el("span", "otd-cap"), lab = otdCount(pgs);
-   if (otdText(e)) lab = lab ? "Text · " + lab : "Text";
+   if (otdHasText(e)) lab = lab ? "Text · " + lab : "Text";
    cap.append(el("b", null, String(e.date).slice(0, 4)));
    if (lab) cap.append(el("small", null, lab));
    b.append(cap);
