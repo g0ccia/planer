@@ -6124,6 +6124,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
     if (t && t !== "Zahlung" && (exp || t !== "JuMe")) cnt[t] = (cnt[t] || 0) + 1;
    });
   };
+  var known = Object.keys(S.colors || {}).concat(Object.keys(DEFAULT_TAGS));
   S.items.forEach(function(i) {
    if ((i.kind === "ausgabe") === exp && i.source !== "oura") add(i.tags);
   });
@@ -6133,9 +6134,53 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   var cur = $("#f-tags").value.split(",").map(function(x) {
    return x.trim();
   }).filter(Boolean);
-  Object.keys(cnt).sort(function(a, b) {
-   return cnt[b] - cnt[a] || a.localeCompare(b, "de");
-  }).slice(0, 12).forEach(function(t) {
+  var low = function(x) {
+   return String(x).toLowerCase();
+  };
+  var hasTag = function(list, t) {
+   return list.some(function(x) {
+    return low(x) === low(t);
+   });
+  };
+  // Gleiche Tags in anderer Schreibweise (LKW/Lkw) zusammenzählen, angezeigt wird die Schreibweise mit Farbe (seit 23.11.2026)
+  var grp = {};
+  Object.keys(cnt).forEach(function(t) {
+   var k = low(t), g = grp[k] || (grp[k] = {
+    n: 0,
+    name: t,
+    top: -1
+   });
+   g.n += cnt[t];
+   if (cnt[t] > g.top) {
+    g.top = cnt[t];
+    g.name = t;
+   }
+  });
+  Object.keys(grp).forEach(function(k) {
+   var kn = known.filter(function(x) {
+    return low(x) === k;
+   })[0];
+   if (kn) grp[k].name = kn;
+  });
+  var list = Object.keys(grp).map(function(k) {
+   return grp[k];
+  }).sort(function(a, b) {
+   return b.n - a.n || a.name.localeCompare(b.name, "de");
+  }).map(function(g) {
+   return g.name;
+  }).slice(0, 12);
+  // Feste Vorschläge aus config/tags.suggest, verdrängen die seltensten
+  if (!exp) (S.tagSuggest || []).forEach(function(p) {
+   if (!p || hasTag(list, p)) return;
+   if (list.length >= 12) {
+    for (var j = list.length - 1; j >= 0; j--) if (!hasTag(S.tagSuggest, list[j])) {
+     list.splice(j, 1);
+     break;
+    }
+   }
+   if (list.length < 12) list.push(p);
+  });
+  list.forEach(function(t) {
    var b = el("button", null, t);
    b.type = "button";
    var tcol = tagColor([ t ]);
@@ -6144,12 +6189,14 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
     dot.style.background = tcol;
     b.prepend(dot);
    }
-   b.setAttribute("aria-pressed", cur.indexOf(t) >= 0 ? "true" : "false");
+   b.setAttribute("aria-pressed", hasTag(cur, t) ? "true" : "false");
    b.addEventListener("click", function() {
     var now = $("#f-tags").value.split(",").map(function(x) {
      return x.trim();
     }).filter(Boolean);
-    var k = now.indexOf(t);
+    var k = now.findIndex(function(x) {
+     return low(x) === low(t);
+    });
     if (k >= 0) now.splice(k, 1); else now.push(t);
     $("#f-tags").value = now.join(", ");
     renderTagPick();
@@ -12927,6 +12974,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   db.doc("config/tags").onSnapshot(function(d) {
    var v = d.exists ? d.data() : null;
    S.colors = v && v.colors || {};
+   S.tagSuggest = v && Array.isArray(v.suggest) ? v.suggest : [];
    if (S.loaded && !busy()) render();
   }, function() {});
  })();
