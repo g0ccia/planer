@@ -11638,6 +11638,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   });
  }
  function closeInk() {
+  if (INK && INK.pdf && !INK.wait) INK.pdf.pos = pdfPos(INK);
   $("#ink").hidden = true;
   inkMsg("");
   document.body.classList.remove("inking");
@@ -12752,13 +12753,29 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   });
   if (!st.pages.length) st.pages = [ inkBlank(false) ];
   st.done = onDone;
-  st.cancel = null;
+  st.cancel = function() {
+   var po = st.pdf.pos;
+   if (!po || pdfSamePos(po, a.pos)) return;
+   var na = Object.assign({}, a);
+   na.pos = po;
+   onDone(na, false);
+  };
   st.wait = false;
   st.busy = false;
   INKP.kind = INKP.pdfKind && INKP.set[INKP.pdfKind] ? INKP.pdfKind : "marker";
   INKP.tool = "pen";
-  var first = 0;
-  st.pages.some(function(p, i) {
+  var first = 0, po = a.pos && a.pos.n > 0 ? a.pos : null, back = -1;
+  if (po) st.pages.some(function(p, i) {
+   if (p.pn === po.n) {
+    back = i;
+    return true;
+   }
+   return false;
+  });
+  if (back >= 0) {
+   first = back;
+   if (PDF_ZOOM.indexOf(po.z) >= 0) st.pdf.zoom = po.z;
+  } else st.pages.some(function(p, i) {
    if (p.strokes.length) {
     first = i;
     return true;
@@ -12766,10 +12783,30 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
    return false;
   });
   inkShow(first);
+  if (back >= 0) {
+   var sc = $("#inkScroll");
+   sc.scrollTop = Math.max(0, (+po.y || 0) * st.h * st.k);
+   sc.scrollLeft = Math.max(0, (+po.x || 0) * st.w * st.k);
+  }
   var mk = st.pages.filter(function(p) {
    return p.strokes.length;
   }).length;
-  inkMsg(pdfPagesText(st.pages.length) + (mk ? ", " + mk + " markiert" : "") + ". " + (INKP.kind === "marker" ? "Der Textmarker ist bereit. " : "") + "„Fertig“ speichert die Markierungen.");
+  inkMsg(back > 0 ? "Weiter auf Seite " + st.pages[back].pn + " von " + st.pages.length + (mk ? " · " + mk + " markiert" : "") + "." : pdfPagesText(st.pages.length) + (mk ? ", " + mk + " markiert" : "") + ". " + (INKP.kind === "marker" ? "Der Textmarker ist bereit. " : "") + "„Fertig“ speichert die Markierungen.");
+ }
+ /* Stelle im PDF: Seite, Lupe und Anteil der Seite oben/links im Bild */
+ function pdfPos(st) {
+  var p = st.pages[st.pi], sc = $("#inkScroll");
+  if (!p || !p.pn) return null;
+  var o = {
+   n: p.pn,
+   z: st.pdf.zoom || 1
+  }, y = sc.scrollTop / (st.h * st.k || 1), x = sc.scrollLeft / (st.w * st.k || 1);
+  if (y > .005) o.y = Math.round(y * 1e3) / 1e3;
+  if (x > .005) o.x = Math.round(x * 1e3) / 1e3;
+  return o;
+ }
+ function pdfSamePos(a, b) {
+  return !!a && !!b && a.n === b.n && (a.z || 1) === (b.z || 1) && Math.abs((a.y || 0) - (b.y || 0)) < .02 && Math.abs((a.x || 0) - (b.x || 0)) < .02;
  }
  /* Hintergrund der angezeigten Seite: gerendert in der Auflösung der Zeichenfläche, Nachbarseiten vorab */
  function pdfBg(pi) {
@@ -13058,7 +13095,8 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
    if (INK !== st) return;
    var cb = st.done;
    closeInk();
-   if (cb) cb(na);
+   if (P.pos) na.pos = P.pos;
+   if (cb) cb(na, true);
   }).catch(function(err) {
    if (INK !== st) return;
    st.busy = false;
@@ -13067,13 +13105,15 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   });
  }
  /* Markierungen direkt am Eintrag speichern (nur dieser Anhang wird ersetzt) */
- function pdfStore(id, na) {
+ function pdfStore(id, na, quiet) {
   var it = S.items && S.items.get(id);
   if (!it || !S.db) return Promise.reject(new Error("Eintrag nicht gefunden"));
   var list = (Array.isArray(it.attachments) ? it.attachments : []).map(function(x) {
    return x && x.id === na.id ? na : x;
   });
-  return S.db.doc("items/" + id).update({
+  return S.db.doc("items/" + id).update(quiet ? {
+   attachments: list
+  } : {
    attachments: list,
    updatedAt: isoNow()
   });
@@ -13084,17 +13124,18 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
    return;
   }
   var eid = S.editing;
-  openPdfInk(a, function(na) {
+  openPdfInk(a, function(na, changed) {
    var i = S.att.indexOf(a);
    if (i < 0) return;
    S.att[i] = na;
    renderAtt();
    var later = function() {
+    if (!changed) return;
     S.inkUnsaved = true;
     formMsg("Die Markierungen werden mit „Speichern“ gesichert.");
    };
-   if (eid && S.items.get(eid)) pdfStore(eid, na).then(function() {
-    formMsg(pdfMarked(na) ? "Markierungen gespeichert." : "Markierungen entfernt.");
+   if (eid && S.items.get(eid)) pdfStore(eid, na, !changed).then(function() {
+    if (changed) formMsg(pdfMarked(na) ? "Markierungen gespeichert." : "Markierungen entfernt.");
    }, later); else later();
   });
  }
@@ -13125,11 +13166,11 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
     toast("PDFs lassen sich gerade nicht öffnen. Lade die Seite neu.");
     return;
    }
-   openPdfInk(a, function(na) {
-    pdfStore(it.id, na).then(function() {
-     toast(pdfMarked(na) ? "Markierungen gespeichert." : "Markierungen entfernt.");
+   openPdfInk(a, function(na, changed) {
+    pdfStore(it.id, na, !changed).then(function() {
+     if (changed) toast(pdfMarked(na) ? "Markierungen gespeichert." : "Markierungen entfernt.");
     }, function(e2) {
-     toast(errText(e2));
+     if (changed) toast(errText(e2));
     });
    });
   });
