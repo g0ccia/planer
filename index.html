@@ -1737,6 +1737,100 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
 #sbLogin .sbl-msg { margin: 0; min-height: 1.2em; color: var(--now); font-size: 14px; }
 #sbBanner { position: fixed; left: 16px; right: 16px; top: calc(16px + env(safe-area-inset-top, 0px)); z-index: 210;
   padding: 12px 14px; border-radius: 12px; background: var(--now); color: #fff; font: 15px/1.35 var(--f-serif); }
+
+/* Lernen (Karteikarten) */
+.ln-head { display: flex; flex-direction: column; gap: 3px; }
+.ln-deck { margin: 0; font: 600 18px/1.2 var(--f-serif); color: var(--fg); text-wrap: balance; }
+.ln-start { display: flex; flex-direction: column; gap: 10px; align-items: stretch; }
+.ln-go { border: 0; border-radius: 14px; padding: 14px 16px; background: var(--orange); color: var(--on-accent);
+  font: 600 15px/1.2 var(--f-cond); letter-spacing: 0.08em; text-transform: uppercase; text-align: center; }
+.ln-go small { display: block; margin-top: 4px; font: 500 11.5px/1.2 var(--f-cond); letter-spacing: 0.04em; text-transform: none; opacity: 0.9; }
+.ln-go.is-done { background: transparent; color: var(--plus); border: 1.5px solid var(--plus); }
+.ln-filter { align-self: flex-start; }
+.ln-strip { display: flex; gap: 3px; align-items: flex-end; }
+.ln-strip span { flex: 1 1 0; min-width: 0; height: 26px; border-radius: 3px; background: var(--line); position: relative; }
+.ln-strip span.on { background: var(--orange); }
+.ln-strip span.today { box-shadow: inset 0 0 0 1.5px var(--fg-soft); }
+.ln-strip-lab { display: flex; justify-content: space-between; font: 500 10px/1 var(--f-cond); letter-spacing: 0.06em; color: var(--muted); margin-top: 4px; }
+.ln-ch { display: flex; flex-direction: column; gap: 6px; width: 100%; text-align: left; background: none; border: 0; padding: 10px 0; border-bottom: 1px solid var(--line); color: var(--fg); }
+.ln-ch:last-child { border-bottom: 0; }
+.ln-ch-top { display: flex; gap: 8px; align-items: baseline; }
+.ln-ch-t { flex: 1 1 auto; min-width: 0; font: 500 14px/1.3 var(--f-serif); overflow-wrap: anywhere; }
+.ln-ch-n { flex: none; font: 600 11px/1 var(--f-cond); letter-spacing: 0.06em; color: var(--orange); font-variant-numeric: tabular-nums; }
+.ln-ch-s { font: 500 11.5px/1.3 var(--f-cond); letter-spacing: 0.03em; color: var(--fg-soft); }
+.ln-ch.locked .ln-ch-t { color: var(--fg-soft); }
+.ln-bar { display: flex; height: 6px; border-radius: 3px; overflow: hidden; background: var(--line); }
+.ln-bar i { display: block; height: 100%; }
+.ln-bar .b1 { background: color-mix(in srgb, var(--orange) 45%, transparent); }
+.ln-bar .b2 { background: var(--orange); }
+.ln-bar .b3 { background: var(--plus); }
+.ln-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font: 500 10.5px/1.2 var(--f-cond); letter-spacing: 0.04em; color: var(--muted); }
+.ln-legend i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 4px; vertical-align: 0; }
+.ln-acts { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.ln-sec { margin: 8px 0 0; font: 600 10.5px/1.2 var(--f-cond); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.ln-card { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; gap: 8px; align-items: start; width: 100%;
+  background: none; border: 0; border-bottom: 1px solid var(--line); padding: 8px 0; text-align: left; color: var(--fg); }
+.ln-card.off { opacity: 0.5; }
+.ln-ty { font: 600 11px/1.6 var(--f-cond); color: var(--red); text-align: center; }
+.ln-q { font: 400 13.5px/1.35 var(--f-serif); overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.ln-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.ln-dots { display: flex; gap: 2px; }
+.ln-dots i { width: 5px; height: 5px; border-radius: 50%; background: var(--line-strong); }
+.ln-dots i.on { background: var(--plus); }
+.ln-due { font: 500 10.5px/1 var(--f-cond); letter-spacing: 0.04em; color: var(--muted); white-space: nowrap; }
+.ln-due.now { color: var(--orange); }
+.ln-k { font-size: 11px; margin-right: 3px; }
+/* Abfrage */
+.ln-sess { flex: 1 1 auto; display: flex; flex-direction: column; gap: 14px; min-height: 100%; }
+.ln-prog { display: flex; align-items: center; gap: 10px; font: 600 11px/1 var(--f-cond); letter-spacing: 0.08em; color: var(--fg-soft); font-variant-numeric: tabular-nums; }
+.ln-prog .ln-pbar { flex: 1 1 auto; height: 4px; border-radius: 2px; background: var(--line); overflow: hidden; }
+.ln-prog .ln-pbar i { display: block; height: 100%; background: var(--orange); }
+.ln-where { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font: 600 10.5px/1.2 var(--f-cond); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.ln-badge { border: 1px solid var(--line-strong); border-radius: 999px; padding: 2px 7px 1px; color: var(--fg-soft); }
+.ln-badge.k { border-color: var(--orange); color: var(--orange); }
+.ln-qbig { margin: 0; font: 500 19px/1.4 var(--f-serif); color: var(--fg); overflow-wrap: anywhere; text-wrap: pretty; }
+.ln-hint { margin: 0; font: italic 400 12.5px/1.45 var(--f-serif); color: var(--muted); }
+.ln-ans { border-top: 1px solid var(--line-strong); padding-top: 12px; }
+.ln-ans .md { font-size: 14.5px; line-height: 1.55; }
+.ln-ans-lab { margin: 0 0 6px; font: 600 10.5px/1.2 var(--f-cond); letter-spacing: 0.12em; text-transform: uppercase; color: var(--red); }
+.ln-ink { display: flex; gap: 8px; flex-wrap: wrap; }
+.ln-ink button { padding: 0; border: 1px solid var(--line-strong); border-radius: 8px; background: #FFFDFA; overflow: hidden; width: 132px; max-height: 150px; }
+.ln-ink img { display: block; width: 100%; height: auto; }
+.ln-rate { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: auto; }
+.ln-rate button, .ln-next { border-radius: 12px; padding: 12px 6px 11px; border: 1.5px solid var(--line-strong); background: transparent;
+  font: 600 12.5px/1.15 var(--f-cond); letter-spacing: 0.06em; text-transform: uppercase; color: var(--fg); }
+.ln-rate button small { display: block; margin-top: 3px; font: 500 10.5px/1 var(--f-cond); letter-spacing: 0.02em; text-transform: none; color: var(--muted); }
+.ln-rate .r-n { border-color: var(--now); color: var(--now); }
+.ln-rate .r-h { border-color: var(--orange); color: var(--orange); }
+.ln-rate .r-g { border-color: var(--plus); color: var(--plus); }
+.ln-flip { margin-top: auto; display: flex; gap: 8px; }
+.ln-flip .ln-next { flex: 1 1 auto; }
+.ln-next.primary { background: var(--orange); border-color: var(--orange); color: var(--on-accent); }
+.ln-opts { display: flex; flex-direction: column; gap: 8px; }
+.ln-opt { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 8px; align-items: start; text-align: left;
+  border: 1.5px solid var(--line-strong); border-radius: 12px; padding: 10px 12px; background: transparent; color: var(--fg);
+  font: 400 14px/1.4 var(--f-serif); }
+.ln-opt b { font: 600 12px/1.5 var(--f-cond); color: var(--fg-soft); }
+.ln-opt.right { border-color: var(--plus); background: color-mix(in srgb, var(--plus) 12%, transparent); }
+.ln-opt.wrong { border-color: var(--now); background: color-mix(in srgb, var(--now) 10%, transparent); }
+.ln-opt:disabled { cursor: default; opacity: 1; }
+.ln-why { margin: 0; padding: 10px 12px; border-radius: 10px; background: var(--bg); font: 400 13.5px/1.5 var(--f-serif); color: var(--fg); }
+.ln-why b { color: var(--plus); }
+.ln-why.bad b { color: var(--now); }
+.ln-end { font: 500 11px/1 var(--f-cond); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); background: none; border: 0; padding: 4px 0; align-self: center; }
+/* Bearbeiten */
+.ln-form { display: flex; flex-direction: column; gap: 10px; }
+.ln-form label { display: flex; flex-direction: column; gap: 5px; font: 600 10.5px/1.2 var(--f-cond); letter-spacing: 0.1em; text-transform: uppercase; color: var(--fg-soft); }
+.ln-form textarea, .ln-form input[type="text"] { font: 400 14px/1.4 var(--f-serif); color: var(--fg); background: var(--bg); border: 1px solid var(--line-strong); border-radius: 8px; padding: 8px 10px; text-transform: none; letter-spacing: 0; }
+.ln-form textarea { min-height: 70px; resize: vertical; }
+.ln-form .ln-optrow { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 8px; align-items: center; }
+.ln-form .ln-optrow textarea { min-height: 0; resize: vertical; }
+.ln-form .ln-chk { flex-direction: row; align-items: center; gap: 8px; text-transform: none; letter-spacing: 0; font: 400 13.5px/1.3 var(--f-serif); color: var(--fg); }
+.ln-info { margin: 0; font: 500 11.5px/1.4 var(--f-cond); letter-spacing: 0.03em; color: var(--muted); }
+/* Tag: Eintrag „Lernen“ */
+.tbox.ln-tbox { font-size: 15px; line-height: 1; }
+.prow.ln-prow .prow-title b { font-weight: 600; }
+.ln-chk-ic { color: var(--on-accent); }
 </style>
 </head>
 <body>
@@ -1799,7 +1893,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
 <nav class="daybar" aria-label="Tag wechseln">
   <div class="dock">
     <div class="pill" id="pill"></div>
-    <button class="menu-dot" id="menuBtn" type="button" aria-label="Menü: Suche, Notizen, Nach Tags, Habits, Bücher, Stunden, Foto, Handschrift" aria-haspopup="menu" aria-expanded="false" aria-controls="menu">
+    <button class="menu-dot" id="menuBtn" type="button" aria-label="Menü: Suche, Notizen, Nach Tags, Habits, Bücher, Lernen, Stunden, Foto, Handschrift" aria-haspopup="menu" aria-expanded="false" aria-controls="menu">
       <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2.1"/><circle cx="12" cy="12" r="2.1"/><circle cx="19" cy="12" r="2.1"/></svg>
     </button>
   </div>
@@ -1812,6 +1906,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   <button type="button" role="menuitem" data-tab="tags"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 12.6V4.5a1 1 0 0 1 1-1h8.1l7.9 7.9a1.4 1.4 0 0 1 0 2l-6.1 6.1a1.4 1.4 0 0 1-2 0z"/><circle cx="8.3" cy="8.3" r="1.5" fill="currentColor" stroke="none"/></svg>Nach Tags</button>
   <button type="button" role="menuitem" data-tab="habits"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V13M9.3 20V9M14.7 20v-6M20 20V5"/></svg>Habits<small id="menuHabits"></small></button>
   <button type="button" role="menuitem" id="menuBooks"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H9v16H5.5A1.5 1.5 0 0 1 4 18.5z"/><path d="M9 4h4v16H9"/><path d="M15.2 5.2l3.4-.9 3 13.6-3.4.9z"/></svg>Bücher<small id="menuBooksN"></small></button>
+  <button type="button" role="menuitem" id="menuLearn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="6.5" width="13" height="13" rx="2"/><path d="M7.5 3.5h11a2 2 0 0 1 2 2v11"/><path d="M8 11.5h4M8 15h3"/></svg>Lernen<small id="menuLearnN"></small></button>
   <button type="button" role="menuitem" id="menuHours"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>Stunden</button>
   <button type="button" role="menuitem" id="menuPhoto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l1.6-2.4h6.8L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.3" r="3.4"/></svg>Foto</button>
   <button type="button" role="menuitem" id="menuInk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20l1.2-4.6L16.4 4.2a2 2 0 0 1 2.8 0l.6.6a2 2 0 0 1 0 2.8L8.6 18.8z"/><path d="M14.5 6l3.5 3.5"/></svg>Handschrift</button>
@@ -1856,6 +1951,18 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
       <button class="plain-btn" type="button" id="bkClose">Schließen</button>
     </div>
     <div class="mv-body" id="bkBody"></div>
+  </section>
+</div>
+<div class="bscrim" id="learnView" hidden>
+  <section class="bsheet" role="dialog" aria-modal="true" aria-labelledby="lnTitle">
+    <div class="sheet-head">
+      <div class="mv-nav">
+        <button class="icon-btn" type="button" id="lnBack" aria-label="Zurück" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+        <h2 id="lnTitle">Lernen</h2>
+      </div>
+      <button class="plain-btn" type="button" id="lnClose">Schließen</button>
+    </div>
+    <div class="mv-body" id="lnBody"></div>
   </section>
 </div>
 <input type="file" id="coverIn" accept="image/*" hidden>
@@ -2460,6 +2567,8 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   wx: new Map,
   track: new Map,
   books: new Map,
+  cards: new Map,
+  lcfg: null,
   diarium: new Map,
   tcfg: null,
   colors: {},
@@ -5514,6 +5623,8 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
    lb.addEventListener("click", openPanel);
    tray.append(lb);
   }
+  var lnb = lnTrayBox();
+  if (lnb) tray.append(lnb);
   var open = S.loaded ? untimed(list).filter(function(i) {
    return !i.done && !i.missed;
   }) : [];
@@ -5525,7 +5636,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
    b.addEventListener("click", openPanel);
    tray.append(b);
   });
-  tray.hidden = !open.length && !late.length && !(S.loaded && untimed(list).length);
+  tray.hidden = !lnb && !open.length && !late.length && !(S.loaded && untimed(list).length);
   if (!open.length && S.loaded && untimed(list).length) {
    var b2 = el("button", "tbox");
    b2.type = "button";
@@ -5583,7 +5694,9 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
    });
    if (all.length) box.append(el("p", "panel-sub", "Heute"));
   }
-  if (!all.length && !late.length) box.append(el("p", "quiet", "Für diesen Tag gibt es nichts ohne Uhrzeit."));
+  var lnr = lnPanelRow();
+  if (lnr) box.append(lnr);
+  if (!all.length && !late.length && !lnr) box.append(el("p", "quiet", "Für diesen Tag gibt es nichts ohne Uhrzeit."));
   var ord = function(a, b) {
    return (a.kind === b.kind ? 0 : a.kind === "aufgabe" ? -1 : 1) || (a.order || 0) - (b.order || 0);
   };
@@ -7443,6 +7556,8 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   $("#menuBooksN").textContent = nb ? nb + " gelesen" : "";
   var ht = S.loaded ? habitToday() : null;
   $("#menuHabits").textContent = ht && ht.due ? ht.done + " / " + ht.due : "";
+  var lnt = S.loaded ? lnToday() : null;
+  $("#menuLearnN").textContent = lnt && lnt.due ? lnt.due + " fällig" : "";
   m.hidden = false;
   $("#menuScrim").hidden = false;
   b.setAttribute("aria-expanded", "true");
@@ -10574,6 +10689,1128 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
    toast(err && err.code === "quota_or_state" ? "Der Speicher für Anhänge ist voll." : "Das Cover ließ sich nicht hochladen. Versuch es noch einmal.");
   });
  });
+ /* ===== Lernen: Karteikarten mit Wiederholungsplan (Sammlung cards, Einstellungen config/lernen) ===== */
+ var LN = {
+  view: "home",
+  deck: null,
+  ch: null,
+  id: null,
+  back: null,
+  filter: "all",
+  sess: null,
+  del: false,
+  reset: true,
+  draft: null
+ };
+ var LN_IV = [ 0, 1, 3, 7, 14, 30 ];
+ var LN_TY = {
+  frage: "Frage",
+  sc: "Single Choice",
+  transfer: "Transfer"
+ };
+ var LN_TYI = {
+  frage: "?",
+  sc: "◉",
+  transfer: "↗"
+ };
+ function lnCfg() {
+  return S.lcfg || {};
+ }
+ function lnDecks() {
+  var d = lnCfg().decks || {};
+  return Object.keys(d).sort().map(function(k) {
+   return Object.assign({
+    id: k
+   }, d[k]);
+  });
+ }
+ function lnDeck(id) {
+  var d = (lnCfg().decks || {})[id];
+  return d ? Object.assign({
+   id: id
+  }, d) : null;
+ }
+ function lnChInfo(deck, ch) {
+  var dk = lnDeck(deck);
+  return dk && dk.ch && dk.ch[String(ch)] || null;
+ }
+ function lnChOpen(c) {
+  var i = lnChInfo(c.deck, c.ch);
+  return !!(i && i.open);
+ }
+ function lnOrd(a, b) {
+  return (Number(a.ch) || 0) - (Number(b.ch) || 0) || String(a.sec || "").localeCompare(String(b.sec || ""), "de", {
+   numeric: true
+  }) || (a.order || 0) - (b.order || 0) || String(a.id).localeCompare(String(b.id));
+ }
+ function lnCards(deck) {
+  var l = [];
+  (S.cards || new Map).forEach(function(c) {
+   if (!deck || c.deck === deck) l.push(c);
+  });
+  return l.sort(lnOrd);
+ }
+ function lnActive(c) {
+  return !c.off && lnChOpen(c);
+ }
+ function lnFilt(c, f) {
+  f = f || LN.filter;
+  if (f === "k") return !!c.k;
+  if (f === "sc") return c.type === "sc";
+  if (f === "open") return c.type !== "sc";
+  return true;
+ }
+ function lnNewPerDay() {
+  var n = Number(lnCfg().neu);
+  return n > 0 ? n : 10;
+ }
+ function lnRoundSize() {
+  var n = Number(lnCfg().runde);
+  return n > 0 ? n : 15;
+ }
+ function lnState(deck, f) {
+  var t = today(), rev = [], neu = [], seenToday = 0, doneToday = 0;
+  lnCards(deck).forEach(function(c) {
+   if (c.hist && c.hist[t]) doneToday++;
+   if (c.seen === t) seenToday++;
+   if (!lnActive(c) || !lnFilt(c, f)) return;
+   if (!c.box) neu.push(c); else if (!c.due || c.due <= t) rev.push(c);
+  });
+  rev.sort(function(a, b) {
+   return String(a.due || "").localeCompare(String(b.due || "")) || (a.box || 0) - (b.box || 0) || lnOrd(a, b);
+  });
+  var left = Math.max(0, lnNewPerDay() - seenToday);
+  return {
+   rev: rev,
+   neu: neu,
+   newLeft: left,
+   due: rev.length + Math.min(neu.length, left),
+   doneToday: doneToday
+  };
+ }
+ function lnToday() {
+  if (!S.loaded || !S.cards || !S.cards.size) return null;
+  return lnState(null, "all");
+ }
+ function lnDays() {
+  var set = {};
+  (S.cards || new Map).forEach(function(c) {
+   if (c.hist) Object.keys(c.hist).forEach(function(d) {
+    if (c.hist[d]) set[d] = (set[d] || 0) + 1;
+   });
+  });
+  return set;
+ }
+ function lnStreak(days) {
+  var d = today();
+  if (!days[d]) d = addDays(d, -1);
+  var n = 0;
+  while (days[d] && n < 4000) {
+   n++;
+   d = addDays(d, -1);
+  }
+  return n;
+ }
+ function lnDueText(c) {
+  if (c.off) return "pausiert";
+  if (!c.box) return "neu";
+  var t = today();
+  if (!c.due || c.due <= t) return "fällig";
+  var n = dayNum(c.due) - dayNum(t);
+  return n === 1 ? "morgen" : "in " + n + " T.";
+ }
+ function lnDots(box) {
+  var w = el("span", "ln-dots");
+  for (var i = 1; i <= 5; i++) {
+   var x = el("i");
+   if (i <= (box || 0)) x.className = "on";
+   w.append(x);
+  }
+  w.setAttribute("aria-label", box ? "Stufe " + box + " von 5" : "neu");
+  return w;
+ }
+ function openLearn(deck) {
+  closeMenu();
+  closePanel();
+  LN.view = "home";
+  LN.ch = null;
+  LN.id = null;
+  LN.sess = null;
+  LN.del = false;
+  LN.reset = true;
+  if (deck) LN.deck = deck;
+  $("#learnView").hidden = false;
+  document.body.style.overflow = "hidden";
+  renderLearn(true);
+ }
+ function closeLearn() {
+  $("#learnView").hidden = true;
+  LN.sess = null;
+  LN.view = "home";
+  if ($("#scrim").hidden && $("#browse").hidden && $("#moneyView").hidden && $("#hoursView").hidden && $("#booksView").hidden) document.body.style.overflow = "";
+  if (S.loaded && !busy()) render();
+ }
+ function lnGo(patch) {
+  Object.assign(LN, patch);
+  LN.del = false;
+  LN.reset = true;
+  renderLearn(true);
+ }
+ function lnBack() {
+  if (LN.view === "edit") {
+   LN.draft = null;
+   if (LN.back === "session" && LN.sess) lnGo({
+    view: "session"
+   }); else lnGo({
+    view: LN.ch != null ? "chapter" : "home"
+   });
+  } else if (LN.view === "session" || LN.view === "done") {
+   LN.sess = null;
+   lnGo({
+    view: LN.ch != null && LN.back === "chapter" ? "chapter" : "home"
+   });
+  } else lnGo({
+   view: "home",
+   ch: null
+  });
+ }
+ function renderLearn(force) {
+  var view = $("#learnView");
+  if (!view || view.hidden) return;
+  if (!force && (LN.view === "session" || LN.view === "edit")) return;
+  var body = $("#lnBody"), ae = document.activeElement;
+  if (!force && ae && body.contains(ae) && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)) return;
+  var keep = LN.reset ? 0 : body.scrollTop;
+  LN.reset = false;
+  body.replaceChildren();
+  $("#lnBack").hidden = LN.view === "home";
+  $("#lnTitle").textContent = "Lernen";
+  if (!S.loaded) {
+   loadingNote(body);
+   return;
+  }
+  var decks = lnDecks();
+  if (!LN.deck || !lnDeck(LN.deck)) LN.deck = decks.length ? decks[0].id : null;
+  if (!LN.deck) {
+   var em = el("div", "empty");
+   em.append(el("p", "big", "Noch keine Lernkarten."), el("p", "small", "Claude legt die Karten aus deinen Kapitel-Notizen an. Danach erscheinen sie hier."));
+   body.append(em);
+   return;
+  }
+  if (LN.view === "session") lnSession(body); else if (LN.view === "done") lnDone(body); else if (LN.view === "edit") lnEdit(body); else if (LN.view === "chapter" && LN.ch != null) lnChapter(body); else {
+   LN.view = "home";
+   lnHome(body);
+  }
+  body.scrollTop = keep;
+ }
+ function lnFilterSw(onChange) {
+  var sw = el("div", "viewsw ln-filter");
+  sw.setAttribute("role", "group");
+  sw.setAttribute("aria-label", "Karten auswählen");
+  [ [ "all", "Alle" ], [ "k", "🎯 Klausur" ], [ "sc", "SC" ], [ "open", "Offen" ] ].forEach(function(f) {
+   var b = el("button", null, f[1]);
+   b.type = "button";
+   b.setAttribute("aria-pressed", LN.filter === f[0] ? "true" : "false");
+   b.addEventListener("click", function() {
+    LN.filter = f[0];
+    try {
+     localStorage.setItem("planer.lnFilter", f[0]);
+    } catch (e) {}
+    if (onChange) onChange(); else renderLearn(true);
+   });
+   sw.append(b);
+  });
+  return sw;
+ }
+ function lnChapters(deck) {
+  var dk = lnDeck(deck), map = {};
+  Object.keys(dk && dk.ch || {}).forEach(function(k) {
+   map[k] = Object.assign({
+    n: k
+   }, dk.ch[k]);
+  });
+  lnCards(deck).forEach(function(c) {
+   var k = String(c.ch);
+   if (!map[k]) map[k] = {
+    n: k
+   };
+  });
+  return Object.keys(map).sort(function(a, b) {
+   return (Number(a) || 0) - (Number(b) || 0) || a.localeCompare(b);
+  }).map(function(k) {
+   return map[k];
+  });
+ }
+ function lnChStats(deck, ch) {
+  var t = today(), s = {
+   all: 0,
+   neu: 0,
+   b1: 0,
+   b2: 0,
+   b3: 0,
+   due: 0
+  };
+  lnCards(deck).forEach(function(c) {
+   if (String(c.ch) !== String(ch) || c.off) return;
+   s.all++;
+   var b = Number(c.box) || 0;
+   if (!b) s.neu++; else if (b <= 2) s.b1++; else if (b === 3) s.b2++; else s.b3++;
+   if (b && (!c.due || c.due <= t) && lnChOpen(c)) s.due++;
+  });
+  return s;
+ }
+ function lnBar(s) {
+  var bar = el("div", "ln-bar");
+  [ "b1", "b2", "b3" ].forEach(function(k) {
+   if (!s[k] || !s.all) return;
+   var i = el("i", k);
+   i.style.width = s[k] / s.all * 100 + "%";
+   bar.append(i);
+  });
+  return bar;
+ }
+ function lnSetOpen(deck, ch, on) {
+  if (!S.db) return;
+  var p = {
+   decks: {}
+  };
+  p.decks[deck] = {
+   ch: {}
+  };
+  p.decks[deck].ch[String(ch)] = {
+   open: on ? today() : null
+  };
+  S.db.doc("config/lernen").set(p, {
+   merge: true
+  }).then(function() {
+   toast(on ? "Kapitel " + ch + " ist freigeschaltet – die Karten kommen ab jetzt dran." : "Kapitel " + ch + " ist wieder gesperrt.");
+  }, function(e) {
+   toast(errText(e));
+  });
+  var c0 = S.lcfg = S.lcfg || {};
+  c0.decks = c0.decks || {};
+  c0.decks[deck] = c0.decks[deck] || {};
+  c0.decks[deck].ch = c0.decks[deck].ch || {};
+  c0.decks[deck].ch[String(ch)] = Object.assign({}, c0.decks[deck].ch[String(ch)], {
+   open: on ? today() : null
+  });
+  renderLearn(true);
+ }
+ function lnHome(body) {
+  var dk = lnDeck(LN.deck), st = lnState(LN.deck), all = lnCards(LN.deck), t = today();
+  var decks = lnDecks();
+  if (decks.length > 1) {
+   var dsw = el("div", "viewsw ln-filter");
+   decks.forEach(function(d) {
+    var b = el("button", null, d.short || d.id);
+    b.type = "button";
+    b.setAttribute("aria-pressed", d.id === LN.deck ? "true" : "false");
+    b.addEventListener("click", function() {
+     lnGo({
+      deck: d.id
+     });
+    });
+    dsw.append(b);
+   });
+   body.append(dsw);
+  }
+  var head = el("div", "ln-head");
+  head.append(el("p", "ln-deck", dk.name || dk.id));
+  if (dk.note) head.append(el("p", "hv-note", dk.note));
+  body.append(head);
+  var box = el("div", "ln-start"), go = el("button", "ln-go");
+  go.type = "button";
+  var act = all.filter(function(c) {
+   return lnActive(c) && lnFilt(c);
+  });
+  if (st.due) {
+   var n = Math.min(st.due, lnRoundSize()), nr = Math.min(st.rev.length, n), nn = n - nr;
+   go.append(document.createTextNode("Lernen · " + n + (n === 1 ? " Karte" : " Karten")));
+   go.append(el("small", null, [ nr ? nr + (nr === 1 ? " Wiederholung" : " Wiederholungen") : "", nn ? nn + " neu" : "", st.due > n ? "danach noch " + (st.due - n) + " fällig" : "", "ca. " + Math.max(1, Math.round(n * .6)) + " Min." ].filter(Boolean).join(" · ")));
+   go.addEventListener("click", function() {
+    lnStart("due");
+   });
+  } else if (act.length) {
+   go.classList.add("is-done");
+   var nx = act.filter(function(c) {
+    return c.box && c.due;
+   }).map(function(c) {
+    return c.due;
+   }).sort()[0];
+   go.append(document.createTextNode("Für heute geschafft ✓"));
+   go.append(el("small", null, (nx ? "Nächste Karten " + lowRel(nx) : "") + (nx ? " · " : "") + "antippen zum Vorausüben"));
+   go.addEventListener("click", function() {
+    lnStart("ahead");
+   });
+  } else {
+   go.disabled = true;
+   go.classList.add("is-done");
+   go.append(document.createTextNode(all.length ? "Noch nichts freigeschaltet" : "Noch keine Karten"));
+   go.append(el("small", null, all.length ? "Schalte unten ein Kapitel frei, das du gelesen hast." : "Claude legt sie aus deinen Notizen an."));
+  }
+  box.append(go, lnFilterSw());
+  body.append(box);
+  var days = lnDays(), learned = 0, safe = 0, total = 0;
+  all.forEach(function(c) {
+   if (c.off) return;
+   total++;
+   if (c.box) learned++;
+   if (c.box >= 4) safe++;
+  });
+  var tiles = el("div", "hd-tiles"), tile = function(lab, val, sub) {
+   var d = el("div");
+   d.append(el("span", null, lab), el("b", null, String(val)), el("small", null, sub));
+   return d;
+  };
+  var stk = lnStreak(days);
+  tiles.append(tile("Heute fällig", st.due, st.doneToday ? st.doneToday + " heute gelernt" : "Karten"), tile("Gelernt", learned, "von " + total + (safe ? " · " + safe + " sicher" : "")), tile("Lerntage", stk, stk === 1 ? "Tag in Folge" : "in Folge"));
+  tiles.style.setProperty("--tc", "var(--orange)");
+  body.append(tiles);
+  var sw = el("div");
+  var strip = el("div", "ln-strip"), d0 = addDays(t, -13);
+  for (var i = 0; i < 14; i++) {
+   var ds = addDays(d0, i), sq = el("span", (days[ds] ? "on" : "") + (ds === t ? " today" : ""));
+   sq.title = shortDate(ds) + (days[ds] ? " · " + days[ds] + " Karten" : "");
+   if (days[ds]) sq.style.opacity = String(Math.min(1, .45 + days[ds] / 30));
+   strip.append(sq);
+  }
+  var lab = el("div", "ln-strip-lab");
+  lab.append(el("span", null, "Letzte 14 Tage"), el("span", null, "heute"));
+  sw.append(strip, lab);
+  body.append(sw);
+  var sec = el("section", "hd-sec");
+  sec.append(secHead("Kapitel", ""));
+  lnChapters(LN.deck).forEach(function(ch) {
+   var s = lnChStats(LN.deck, ch.n), open = !!ch.open;
+   var row = el("div", "ln-ch" + (open ? "" : " locked"));
+   var main = el("button", "ln-ch");
+   main.type = "button";
+   main.style.borderBottom = "0";
+   main.style.padding = "0";
+   var top = el("div", "ln-ch-top");
+   top.append(el("span", "ln-ch-t", "Kapitel " + ch.n + (ch.title ? " · " + ch.title : "")));
+   if (open && s.due) top.append(el("span", "ln-ch-n", s.due + " fällig"));
+   main.append(top);
+   main.append(el("span", "ln-ch-s", open ? s.all + " Karten · " + s.neu + " neu · " + (s.b1 + s.b2) + " lernend · " + s.b3 + " sicher" : s.all + " Karten · noch nicht freigeschaltet"));
+   if (open && s.all) main.append(lnBar(s));
+   main.addEventListener("click", function() {
+    lnGo({
+     view: "chapter",
+     ch: ch.n
+    });
+   });
+   row.append(main);
+   if (!open && s.all) {
+    var ub = el("button", "link-btn", "Gelesen – freischalten");
+    ub.type = "button";
+    ub.style.alignSelf = "flex-start";
+    ub.addEventListener("click", function() {
+     lnSetOpen(LN.deck, ch.n, true);
+    });
+    row.append(ub);
+   }
+   sec.append(row);
+  });
+  var lg = el("div", "ln-legend");
+  [ [ "b1", "lernend (Stufe 1–2)" ], [ "b2", "gefestigt (3)" ], [ "b3", "sicher (4–5)" ] ].forEach(function(x) {
+   var s0 = el("span"), i0 = el("i", "b " + x[0]);
+   i0.style.background = x[0] === "b1" ? "color-mix(in srgb, var(--orange) 45%, transparent)" : x[0] === "b2" ? "var(--orange)" : "var(--plus)";
+   s0.append(i0, document.createTextNode(x[1]));
+   lg.append(s0);
+  });
+  sec.append(lg);
+  body.append(sec);
+  body.append(el("p", "hv-note", "So funktioniert es: Was du weißt, kommt mit wachsendem Abstand wieder (1, 3, 7, 14, 30 Tage). Was du nicht wusstest, kommt morgen wieder. Neue Karten kommen erst, wenn du ein Kapitel freischaltest – höchstens " + lnNewPerDay() + " neue am Tag."));
+ }
+ function lnChapter(body) {
+  var info = lnChInfo(LN.deck, LN.ch) || {}, open = !!info.open;
+  $("#lnTitle").textContent = "Kapitel " + LN.ch;
+  var head = el("div", "ln-head");
+  if (info.title) head.append(el("p", "ln-deck", info.title));
+  head.append(el("p", "hv-note", open ? "Freigeschaltet " + (info.open === today() ? "heute" : "am " + shortDate(info.open)) + "." : "Noch nicht freigeschaltet. Schalte es frei, sobald du das Kapitel (wieder) gelesen hast – dann kommen die Karten in deine Runden."));
+  body.append(head);
+  var list = lnCards(LN.deck).filter(function(c) {
+   return String(c.ch) === String(LN.ch);
+  });
+  var acts = el("div", "ln-acts");
+  var use = list.filter(function(c) {
+   return !c.off && lnFilt(c);
+  });
+  if (open) {
+   var pb = el("button", "btn primary", "Kapitel üben (" + use.length + ")");
+   pb.type = "button";
+   pb.disabled = !use.length;
+   pb.addEventListener("click", function() {
+    LN.back = "chapter";
+    lnStart("chapter", use.map(function(c) {
+     return c.id;
+    }));
+   });
+   acts.append(pb);
+  } else {
+   var ob = el("button", "btn primary", "Gelesen – freischalten");
+   ob.type = "button";
+   ob.addEventListener("click", function() {
+    lnSetOpen(LN.deck, LN.ch, true);
+   });
+   acts.append(ob);
+  }
+  var nb = el("button", "btn", "+ Karte");
+  nb.type = "button";
+  nb.addEventListener("click", function() {
+   LN.back = "chapter";
+   LN.draft = null;
+   lnGo({
+    view: "edit",
+    id: null
+   });
+  });
+  acts.append(nb);
+  if (open) {
+   var lb = el("button", "btn", "Sperren");
+   lb.type = "button";
+   lb.addEventListener("click", function() {
+    lnSetOpen(LN.deck, LN.ch, false);
+   });
+   acts.append(lb);
+  }
+  body.append(acts, lnFilterSw());
+  var sec = null, wrap = el("div");
+  list.filter(function(c) {
+   return lnFilt(c);
+  }).forEach(function(c) {
+   if (c.sec !== sec) {
+    sec = c.sec;
+    wrap.append(el("p", "ln-sec", (sec || "Ohne Abschnitt") + (c.secT ? " · " + c.secT : "")));
+   }
+   var r = el("button", "ln-card" + (c.off ? " off" : ""));
+   r.type = "button";
+   r.append(el("span", "ln-ty", LN_TYI[c.type] || "?"));
+   var q = el("span", "ln-q");
+   if (c.k) q.append(el("span", "ln-k", "🎯"));
+   q.append(document.createTextNode(c.q || "Ohne Frage"));
+   r.append(q);
+   var m = el("span", "ln-meta"), dt = lnDueText(c);
+   m.append(lnDots(c.box), el("span", "ln-due" + (dt === "fällig" && open ? " now" : ""), dt));
+   r.append(m);
+   r.setAttribute("aria-label", (LN_TY[c.type] || "Karte") + ": " + (c.q || "") + " – " + dt + " – bearbeiten");
+   r.addEventListener("click", function() {
+    LN.back = "chapter";
+    LN.draft = null;
+    lnGo({
+     view: "edit",
+     id: c.id
+    });
+   });
+   wrap.append(r);
+  });
+  if (!wrap.childNodes.length) wrap.append(el("p", "quiet", list.length ? "Keine Karten für diese Auswahl." : "Noch keine Karten in diesem Kapitel."));
+  body.append(wrap);
+ }
+ function lnShuffle(n) {
+  var a = [];
+  for (var i = 0; i < n; i++) a.push(i);
+  for (var j = n - 1; j > 0; j--) {
+   var k = Math.floor(Math.random() * (j + 1)), x = a[j];
+   a[j] = a[k];
+   a[k] = x;
+  }
+  return a;
+ }
+ function lnStart(mode, ids) {
+  var round = lnRoundSize();
+  if (mode === "due") {
+   var st = lnState(LN.deck);
+   ids = st.rev.concat(st.neu.slice(0, st.newLeft)).slice(0, round).map(function(c) {
+    return c.id;
+   });
+   LN.back = "home";
+  } else if (mode === "ahead") {
+   ids = lnCards(LN.deck).filter(function(c) {
+    return lnActive(c) && lnFilt(c) && c.box;
+   }).sort(function(a, b) {
+    return String(a.due || "").localeCompare(String(b.due || "")) || (a.box || 0) - (b.box || 0);
+   }).slice(0, round).map(function(c) {
+    return c.id;
+   });
+   LN.back = "home";
+  }
+  if (!ids || !ids.length) {
+   toast("Gerade gibt es keine Karten zum Üben.");
+   return;
+  }
+  LN.sess = {
+   mode: mode,
+   ids: ids.slice(),
+   n0: ids.length,
+   i: 0,
+   flip: false,
+   pick: null,
+   res: {
+    g: 0,
+    h: 0,
+    n: 0
+   },
+   again: {},
+   ink: {},
+   ord: {}
+  };
+  lnGo({
+   view: "session"
+  });
+ }
+ function lnRate(c, g, repeat) {
+  if (!S.db || !c) return;
+  var t = today(), box = Number(c.box) || 0, nb, due;
+  if (repeat) {
+   nb = Math.min(box || 1, 1);
+   due = addDays(t, 1);
+  } else {
+   if (g === "g") nb = box ? Math.min(5, box + 1) : 2; else if (g === "h") nb = box ? Math.max(1, box - 1) : 1; else nb = 1;
+   due = g === "n" ? addDays(t, 1) : addDays(t, LN_IV[nb]);
+  }
+  var upd = {
+   box: nb,
+   due: due,
+   last: t,
+   updatedAt: isoNow(),
+   hist: {}
+  };
+  upd.hist[t] = g;
+  if (!c.seen) upd.seen = t;
+  c.box = nb;
+  c.due = due;
+  c.last = t;
+  c.hist = Object.assign({}, c.hist || {});
+  c.hist[t] = g;
+  if (!c.seen) c.seen = t;
+  S.db.doc("cards/" + c.id).update(upd).catch(function(e) {
+   toast(errText(e));
+  });
+ }
+ function lnCur() {
+  var s = LN.sess;
+  if (!s) return null;
+  var id = s.ids[s.i];
+  return id && S.cards ? S.cards.get(id) : null;
+ }
+ function lnNext() {
+  var s = LN.sess;
+  if (!s) return;
+  s.i++;
+  s.flip = false;
+  s.pick = null;
+  if (s.i >= s.ids.length) LN.view = "done";
+  LN.reset = true;
+  renderLearn(true);
+ }
+ function lnGrade(g) {
+  var s = LN.sess, c = lnCur();
+  if (!s || !c || !s.flip) return;
+  var rep = !!s.again[c.id] && s.i >= s.n0;
+  lnRate(c, g, rep);
+  if (!rep) s.res[g]++;
+  if (g === "n" && !s.again[c.id]) {
+   s.again[c.id] = true;
+   s.ids.push(c.id);
+  }
+  lnNext();
+ }
+ function lnFlip() {
+  var s = LN.sess;
+  if (!s || s.flip) return;
+  s.flip = true;
+  renderLearn(true);
+ }
+ function lnPick(idx) {
+  var s = LN.sess, c = lnCur();
+  if (!s || !c || s.pick != null) return;
+  s.pick = idx;
+  s.flip = true;
+  var ok = idx === Number(c.ok), rep = !!s.again[c.id] && s.i >= s.n0;
+  lnRate(c, ok ? "g" : "n", rep);
+  if (!rep) s.res[ok ? "g" : "n"]++;
+  if (!ok && !s.again[c.id]) {
+   s.again[c.id] = true;
+   s.ids.push(c.id);
+  }
+  renderLearn(true);
+ }
+ function lnInkWrite(c) {
+  if (!S.assets) {
+   toast("Handschrift lässt sich gerade nicht speichern. Lade die Seite neu.");
+   return;
+  }
+  openInk(null, 0, function(list) {
+   if (!list || !list.length || !LN.sess) return;
+   LN.sess.ink[c.id] = list;
+   if (S.db) S.db.doc("cards/" + c.id).update({
+    ink: list,
+    inkAt: isoNow(),
+    updatedAt: isoNow()
+   }).catch(function(e) {
+    toast(errText(e));
+   });
+   renderLearn(true);
+  });
+ }
+ function lnInkThumbs(list) {
+  var w = el("div", "ln-ink");
+  (list || []).forEach(function(a) {
+   var b = el("button");
+   b.type = "button";
+   b.setAttribute("aria-label", "Deine Antwort groß ansehen");
+   var im = document.createElement("img");
+   im.src = blobUrl(a.id);
+   im.alt = "Deine Antwort";
+   b.append(im);
+   b.addEventListener("click", function() {
+    showAtt(a);
+   });
+   w.append(b);
+  });
+  return w;
+ }
+ function lnSession(body) {
+  var s = LN.sess, c = lnCur();
+  if (!s || !c) {
+   if (s && s.i < s.ids.length) {
+    s.i++;
+    if (s.i >= s.ids.length) LN.view = "done";
+    renderLearn(true);
+    return;
+   }
+   LN.view = "home";
+   renderLearn(true);
+   return;
+  }
+  var info = lnChInfo(c.deck, c.ch) || {};
+  $("#lnTitle").textContent = "Abfrage";
+  var wrap = el("div", "ln-sess");
+  var pr = el("div", "ln-prog"), pb = el("span", "ln-pbar"), pi = el("i");
+  pi.style.width = Math.round(s.i / s.ids.length * 100) + "%";
+  pb.append(pi);
+  pr.append(el("span", null, s.i + 1 + " / " + s.ids.length), pb);
+  wrap.append(pr);
+  var wh = el("div", "ln-where");
+  wh.append(el("span", null, "Kap. " + c.ch + (c.sec ? " · " + c.sec : "")));
+  wh.append(el("span", "ln-badge", LN_TY[c.type] || "Frage"));
+  if (c.k) wh.append(el("span", "ln-badge k", "🎯 Klausur"));
+  if (s.again[c.id] && s.i >= s.n0) wh.append(el("span", "ln-badge", "nochmal"));
+  wrap.append(wh);
+  wrap.append(el("p", "ln-qbig", c.q || ""));
+  if (c.type === "sc") {
+   var ord = s.ord[c.id] || (s.ord[c.id] = lnShuffle((c.opts || []).length)), opts = el("div", "ln-opts");
+   ord.forEach(function(oi, k) {
+    var b = el("button", "ln-opt");
+    b.type = "button";
+    b.append(el("b", null, "ABCDEFG".charAt(k)), el("span", null, (c.opts || [])[oi] || ""));
+    if (s.pick != null) {
+     b.disabled = true;
+     if (oi === Number(c.ok)) b.classList.add("right"); else if (oi === s.pick) b.classList.add("wrong");
+    } else b.addEventListener("click", function() {
+     lnPick(oi);
+    });
+    opts.append(b);
+   });
+   wrap.append(opts);
+   if (s.pick != null) {
+    var ok = s.pick === Number(c.ok), why = el("p", "ln-why" + (ok ? "" : " bad"));
+    why.append(el("b", null, ok ? "Richtig. " : "Leider falsch. "), document.createTextNode(c.why || ""));
+    wrap.append(why);
+    var nx = el("button", "ln-next primary", s.i + 1 < s.ids.length ? "Weiter" : "Fertig");
+    nx.type = "button";
+    nx.addEventListener("click", lnNext);
+    var fl = el("div", "ln-flip");
+    fl.append(nx);
+    wrap.append(fl);
+   } else wrap.append(el("p", "ln-hint", "Tippe die richtige Antwort an – es ist genau eine richtig."));
+  } else {
+   var mine = s.ink[c.id];
+   if (!s.flip) {
+    wrap.append(el("p", "ln-hint", c.type === "transfer" ? "Transferfrage: Beantworte sie wie in der Klausur – am besten mit dem Stift. Dann vergleich mit der Lösungsskizze." : "Erst selbst überlegen oder hinschreiben, dann umdrehen."));
+    if (mine) wrap.append(lnInkThumbs(mine));
+    var fl2 = el("div", "ln-flip");
+    var ib = el("button", "ln-next", mine ? "✍️ Nochmal schreiben" : "✍️ Mit Stift");
+    ib.type = "button";
+    ib.addEventListener("click", function() {
+     lnInkWrite(c);
+    });
+    var sb = el("button", "ln-next primary", "Antwort zeigen");
+    sb.type = "button";
+    sb.addEventListener("click", lnFlip);
+    fl2.append(ib, sb);
+    wrap.append(fl2);
+   } else {
+    var ans = el("div", "ln-ans");
+    ans.append(el("p", "ln-ans-lab", c.type === "transfer" ? "Lösungsskizze" : "Antwort"));
+    ans.append(mdRender(c.a || ""));
+    wrap.append(ans);
+    if (mine) {
+     wrap.append(el("p", "ln-ans-lab", "Deine Antwort"));
+     wrap.append(lnInkThumbs(mine));
+    }
+    var rt = el("div", "ln-rate");
+    [ [ "n", "Nicht gewusst", "morgen" ], [ "h", "So halb", "bald" ], [ "g", "Gewusst", c.box ? "in " + LN_IV[Math.min(5, (Number(c.box) || 0) + 1)] + " T." : "in 3 T." ] ].forEach(function(r) {
+     var b = el("button", "r-" + r[0]);
+     b.type = "button";
+     b.append(document.createTextNode(r[1]), el("small", null, r[2]));
+     b.addEventListener("click", function() {
+      lnGrade(r[0]);
+     });
+     rt.append(b);
+    });
+    wrap.append(rt);
+   }
+  }
+  var foot = el("div", "ln-acts");
+  foot.style.justifyContent = "space-between";
+  var eb = el("button", "ln-end", "Karte bearbeiten");
+  eb.type = "button";
+  eb.addEventListener("click", function() {
+   LN.back = "session";
+   LN.draft = null;
+   lnGo({
+    view: "edit",
+    id: c.id
+   });
+  });
+  var xb = el("button", "ln-end", "Runde beenden");
+  xb.type = "button";
+  xb.addEventListener("click", function() {
+   LN.view = "done";
+   renderLearn(true);
+  });
+  foot.append(eb, xb);
+  wrap.append(foot);
+  body.append(wrap);
+ }
+ function lnDone(body) {
+  var s = LN.sess || {
+   res: {
+    g: 0,
+    h: 0,
+    n: 0
+   }
+  }, st = lnState(LN.deck);
+  $("#lnTitle").textContent = "Runde geschafft";
+  var n = s.res.g + s.res.h + s.res.n;
+  var head = el("div", "ln-head");
+  head.append(el("p", "ln-deck", n ? n + (n === 1 ? " Karte gelernt" : " Karten gelernt") : "Runde beendet"));
+  body.append(head);
+  var tiles = el("div", "hd-tiles"), tile = function(lab, val, sub) {
+   var d = el("div");
+   d.append(el("span", null, lab), el("b", null, String(val)), el("small", null, sub));
+   return d;
+  };
+  tiles.append(tile("Gewusst", s.res.g, "kommen später wieder"), tile("So halb", s.res.h, "bald wieder"), tile("Nicht gewusst", s.res.n, "morgen wieder"));
+  tiles.style.setProperty("--tc", "var(--plus)");
+  body.append(tiles);
+  var acts = el("div", "ln-start");
+  if (st.due) {
+   var g = el("button", "ln-go");
+   g.type = "button";
+   g.append(document.createTextNode("Noch eine Runde"), el("small", null, st.due + " noch fällig"));
+   g.addEventListener("click", function() {
+    lnStart("due");
+   });
+   acts.append(g);
+  } else acts.append(el("p", "hv-note", "Für heute ist nichts mehr fällig. Gut gemacht!"));
+  var f = el("button", "btn", "Fertig");
+  f.type = "button";
+  f.style.alignSelf = "flex-start";
+  f.addEventListener("click", function() {
+   LN.sess = null;
+   lnGo({
+    view: LN.back === "chapter" && LN.ch != null ? "chapter" : "home"
+   });
+  });
+  acts.append(f);
+  body.append(acts);
+ }
+ function lnEdit(body) {
+  var c = LN.id && S.cards ? S.cards.get(LN.id) : null, isNew = !c;
+  var d = LN.draft || (LN.draft = c ? {
+   type: c.type || "frage",
+   sec: c.sec || "",
+   q: c.q || "",
+   a: c.a || "",
+   opts: (c.opts || []).slice(),
+   ok: Number(c.ok) || 0,
+   why: c.why || "",
+   k: !!c.k,
+   off: !!c.off
+  } : {
+   type: "frage",
+   sec: "",
+   q: "",
+   a: "",
+   opts: [ "", "", "", "" ],
+   ok: 0,
+   why: "",
+   k: false,
+   off: false
+  });
+  while (d.opts.length < 4) d.opts.push("");
+  $("#lnTitle").textContent = isNew ? "Neue Karte" : "Karte bearbeiten";
+  var f = el("div", "ln-form");
+  var tsw = el("div", "viewsw ln-filter");
+  [ "frage", "sc", "transfer" ].forEach(function(k) {
+   var b = el("button", null, LN_TY[k]);
+   b.type = "button";
+   b.setAttribute("aria-pressed", d.type === k ? "true" : "false");
+   b.addEventListener("click", function() {
+    lnEditRead(f, d);
+    d.type = k;
+    renderLearn(true);
+   });
+   tsw.append(b);
+  });
+  f.append(tsw);
+  var fld = function(lab, key, multi, ph) {
+   var l = el("label", null, lab), inp = el(multi ? "textarea" : "input");
+   if (!multi) inp.type = "text";
+   inp.value = d[key] || "";
+   inp.dataset.k = key;
+   if (ph) inp.placeholder = ph;
+   l.append(inp);
+   return l;
+  };
+  f.append(fld("Abschnitt", "sec", false, "z. B. 1.2.2"), fld("Frage", "q", true));
+  if (d.type === "sc") {
+   var ol = el("label", null, "Antworten – die richtige markieren");
+   d.opts.forEach(function(o, i) {
+    var r = el("div", "ln-optrow"), rb = el("input"), ti = el("textarea");
+    rb.type = "radio";
+    rb.name = "lnok";
+    rb.checked = d.ok === i;
+    rb.dataset.ok = String(i);
+    rb.setAttribute("aria-label", "Antwort " + "ABCD".charAt(i) + " ist richtig");
+    ti.rows = Math.min(4, Math.max(2, Math.ceil(String(o || "").length / 38)));
+    ti.value = o;
+    ti.dataset.opt = String(i);
+    r.append(rb, ti);
+    ol.append(r);
+   });
+   f.append(ol, fld("Erklärung", "why", true));
+  } else f.append(fld(d.type === "transfer" ? "Lösungsskizze" : "Antwort", "a", true));
+  var kc = el("label", "ln-chk"), kb = el("input");
+  kb.type = "checkbox";
+  kb.checked = d.k;
+  kb.dataset.k = "k";
+  kc.append(kb, document.createTextNode("🎯 klausurrelevant (steht in den Studienheften)"));
+  var oc = el("label", "ln-chk"), obx = el("input");
+  obx.type = "checkbox";
+  obx.checked = d.off;
+  obx.dataset.k = "off";
+  oc.append(obx, document.createTextNode("Pausieren – kommt nicht mehr dran"));
+  f.append(kc, oc);
+  if (c) {
+   var hk = Object.keys(c.hist || {}).sort(), last = hk[hk.length - 1];
+   f.append(el("p", "ln-info", (c.box ? "Stufe " + c.box + " von 5 · " + (c.due ? "fällig " + lowRel(c.due) : "") : "Noch nicht gelernt") + (last ? " · zuletzt " + lowRel(last) + ": " + ({
+    g: "gewusst",
+    h: "so halb",
+    n: "nicht gewusst"
+   }[c.hist[last]] || "") : "") + (hk.length ? " · " + hk.length + "× abgefragt" : "")));
+  }
+  var acts = el("div", "actions"), sv = el("button", "btn primary", "Speichern");
+  sv.type = "button";
+  sv.addEventListener("click", function() {
+   lnEditRead(f, d);
+   lnSaveCard(c, d);
+  });
+  acts.append(sv);
+  if (c) {
+   var rs = el("button", "btn", "Lernstand zurücksetzen");
+   rs.type = "button";
+   rs.addEventListener("click", function() {
+    if (!S.db) return;
+    S.db.doc("cards/" + c.id).update({
+     box: 0,
+     due: null,
+     seen: null,
+     updatedAt: isoNow()
+    }).then(function() {
+     toast("Die Karte gilt wieder als neu.");
+    }, function(e) {
+     toast(errText(e));
+    });
+   });
+   acts.append(rs);
+   var dl = el("button", "btn danger", LN.del ? "Wirklich löschen?" : "Löschen");
+   dl.type = "button";
+   dl.addEventListener("click", function() {
+    if (!LN.del) {
+     LN.del = true;
+     dl.textContent = "Wirklich löschen?";
+     return;
+    }
+    S.db.doc("cards/" + c.id).delete().then(function() {
+     toast("Karte gelöscht.");
+    }, function(e) {
+     toast(errText(e));
+    });
+    if (LN.sess) {
+     var ix = LN.sess.ids.indexOf(c.id);
+     if (ix >= 0 && ix >= LN.sess.i) LN.sess.ids.splice(ix, 1);
+    }
+    S.cards.delete(c.id);
+    LN.draft = null;
+    lnBack();
+   });
+   acts.append(dl);
+  }
+  var cc = el("button", "btn", "Abbrechen");
+  cc.type = "button";
+  cc.addEventListener("click", lnBack);
+  acts.append(el("span", "spacer"), cc);
+  f.append(acts);
+  body.append(f);
+ }
+ function lnEditRead(f, d) {
+  f.querySelectorAll("[data-k]").forEach(function(n) {
+   var k = n.dataset.k;
+   if (n.type === "checkbox") d[k] = n.checked; else d[k] = n.value;
+  });
+  f.querySelectorAll("[data-opt]").forEach(function(n) {
+   d.opts[Number(n.dataset.opt)] = n.value;
+  });
+  f.querySelectorAll("[data-ok]").forEach(function(n) {
+   if (n.checked) d.ok = Number(n.dataset.ok);
+  });
+ }
+ function lnSaveCard(c, d) {
+  if (!S.db) return;
+  var q = String(d.q || "").trim();
+  if (!q) {
+   toast("Die Karte braucht eine Frage.");
+   return;
+  }
+  var data = {
+   type: d.type,
+   sec: String(d.sec || "").trim(),
+   q: q,
+   k: !!d.k,
+   off: !!d.off,
+   updatedAt: isoNow()
+  };
+  if (d.type === "sc") {
+   var opts = d.opts.map(function(o) {
+    return String(o || "").trim();
+   });
+   var okTxt = opts[d.ok];
+   var keep = opts.filter(Boolean);
+   if (keep.length < 2 || !okTxt) {
+    toast("Bitte mindestens zwei Antworten eintragen und die richtige markieren.");
+    return;
+   }
+   data.opts = keep;
+   data.ok = keep.indexOf(okTxt);
+   data.why = String(d.why || "").trim();
+   data.a = null;
+  } else {
+   data.a = String(d.a || "").trim();
+   data.opts = null;
+   data.ok = null;
+   data.why = null;
+  }
+  var p;
+  if (c) {
+   p = S.db.doc("cards/" + c.id).update(data);
+   Object.assign(c, data);
+  } else {
+   var id = "c-" + String(LN.deck || "karte").toLowerCase() + "-" + (LN.ch != null ? LN.ch + "-" : "") + Math.random().toString(36).slice(2, 7);
+   data.deck = LN.deck;
+   data.ch = Number(LN.ch) || LN.ch || 0;
+   data.box = 0;
+   data.order = 900;
+   data.src = "planer";
+   data.createdAt = isoNow();
+   p = S.db.doc("cards/" + id).set(data);
+  }
+  p.then(function() {
+   toast(c ? "Karte gespeichert." : "Karte angelegt.");
+  }, function(e) {
+   toast(errText(e));
+  });
+  LN.draft = null;
+  lnBack();
+ }
+ function lnTrayBox() {
+  if (S.date !== today()) return null;
+  var st = lnToday();
+  if (!st || !st.due) return null;
+  var b = paint(el("button", "tbox ln-tbox"), [ "Studium" ]);
+  b.type = "button";
+  b.textContent = "📚";
+  b.setAttribute("aria-label", "Lernen: " + st.due + (st.due === 1 ? " Karte" : " Karten") + " fällig – öffnen");
+  b.addEventListener("click", function() {
+   openLearn();
+  });
+  return b;
+ }
+ function lnPanelRow() {
+  if (S.date !== today()) return null;
+  var st = lnToday();
+  if (!st || !st.due && !st.doneToday) return null;
+  var done = !st.due;
+  var row = paint(el("div", "prow is-habit ln-prow" + (done ? " is-done" : "")), [ "Studium" ]);
+  var ck = el("button", "chk");
+  ck.type = "button";
+  ck.innerHTML = ICON_CHECK;
+  ck.setAttribute("aria-pressed", done ? "true" : "false");
+  ck.setAttribute("aria-label", "Lernen öffnen");
+  ck.addEventListener("click", function(e) {
+   e.stopPropagation();
+   openLearn();
+  });
+  var main = el("button", "prow-main");
+  main.type = "button";
+  main.append(el("span", "prow-title", "📚 Lernen"));
+  main.append(el("span", "prow-time", done ? st.doneToday + (st.doneToday === 1 ? " Karte" : " Karten") + " heute gelernt" : st.due + (st.due === 1 ? " Karte" : " Karten") + " fällig · ca. " + Math.max(1, Math.round(Math.min(st.due, lnRoundSize()) * .6)) + " min"));
+  main.addEventListener("click", function() {
+   openLearn();
+  });
+  row.append(ck, main, el("span"));
+  return row;
+ }
+ document.addEventListener("keydown", function(e) {
+  if ($("#learnView").hidden || LN.view !== "session" || !$("#ink").hidden) return;
+  var t = e.target;
+  if (t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return;
+  var c = lnCur(), s = LN.sess;
+  if (!c || !s) return;
+  if (c.type === "sc") {
+   if (s.pick == null && /^[1-4a-dA-D]$/.test(e.key)) {
+    var k = /\d/.test(e.key) ? Number(e.key) - 1 : "abcd".indexOf(e.key.toLowerCase()), ord = s.ord[c.id];
+    if (ord && k < ord.length) lnPick(ord[k]);
+    e.preventDefault();
+   } else if (s.pick != null && (e.key === "Enter" || e.key === " ")) {
+    lnNext();
+    e.preventDefault();
+   }
+   return;
+  }
+  if (!s.flip && (e.key === " " || e.key === "Enter")) {
+   lnFlip();
+   e.preventDefault();
+  } else if (s.flip && /^[123]$/.test(e.key)) {
+   lnGrade("nhg".charAt(Number(e.key) - 1));
+   e.preventDefault();
+  }
+ });
+ try {
+  var lnf = localStorage.getItem("planer.lnFilter");
+  if (lnf === "k" || lnf === "sc" || lnf === "open") LN.filter = lnf;
+ } catch (e) {}
+ $("#menuLearn").addEventListener("click", function() {
+  openLearn();
+ });
+ $("#lnClose").addEventListener("click", closeLearn);
+ $("#lnBack").addEventListener("click", lnBack);
+ $("#learnView").addEventListener("click", function(e) {
+  if (e.target === this) closeLearn();
+ });
  $("#menuBooks").addEventListener("click", function() {
   openBooks();
  });
@@ -13410,7 +14647,9 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
    return;
   }
   if (e.key !== "Escape") return;
-  if (!$("#lightbox").hidden) closeLightbox(); else if (!$("#scrim").hidden) closeSheet(); else if (!$("#booksView").hidden) closeBooks(); else if (!$("#hoursView").hidden) closeHours(); else if (!$("#moneyView").hidden) closeMoney(); else if (!$("#browse").hidden) {
+  if (!$("#lightbox").hidden) closeLightbox(); else if (!$("#scrim").hidden) closeSheet(); else if (!$("#learnView").hidden) {
+   if (LN.view === "home") closeLearn(); else lnBack();
+  } else if (!$("#booksView").hidden) closeBooks(); else if (!$("#hoursView").hidden) closeHours(); else if (!$("#moneyView").hidden) closeMoney(); else if (!$("#browse").hidden) {
    closeBrowse();
    $("#menuBtn").focus({
     preventScroll: true
@@ -13460,7 +14699,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
  (function() {
   var sw = null;
   var overlayOpen = function() {
-   return [ "#scrim", "#menu", "#browse", "#booksView", "#hoursView", "#moneyView", "#lightbox", "#ink", "#panel" ].some(function(q) {
+   return [ "#scrim", "#menu", "#browse", "#booksView", "#learnView", "#hoursView", "#moneyView", "#lightbox", "#ink", "#panel" ].some(function(q) {
     var n = $(q);
     return n && !n.hidden;
    });
@@ -13549,10 +14788,10 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   } catch (e) {}
   if (!$("#scrim").hidden || !$("#ink").hidden) return;
   closeMenu();
-  [ "#browse", "#booksView", "#hoursView", "#moneyView" ].forEach(function(q) {
+  [ "#browse", "#booksView", "#learnView", "#hoursView", "#moneyView" ].forEach(function(q) {
    var n = $(q);
    if (n && !n.hidden) {
-    if (q === "#browse") closeBrowse(); else if (q === "#booksView") closeBooks(); else if (q === "#hoursView") closeHours(); else closeMoney();
+    if (q === "#browse") closeBrowse(); else if (q === "#booksView") closeBooks(); else if (q === "#learnView") closeLearn(); else if (q === "#hoursView") closeHours(); else closeMoney();
    }
   });
   if (act === "ink") {
@@ -13731,6 +14970,27 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
    if (S.loaded && !busy()) {
     renderTrack();
     if (typeof renderBooks === "function") renderBooks();
+   }
+  }, function() {});
+  db.collection("cards").onSnapshot(function(snap) {
+   var m = new Map;
+   snap.docs.forEach(function(d) {
+    var v = d.data();
+    if (v) m.set(d.id, Object.assign({
+     id: d.id
+    }, v));
+   });
+   S.cards = m;
+   if (S.loaded && !busy()) {
+    render();
+    renderLearn();
+   }
+  }, function() {});
+  db.doc("config/lernen").onSnapshot(function(d) {
+   S.lcfg = d.exists ? d.data() : null;
+   if (S.loaded && !busy()) {
+    render();
+    renderLearn();
    }
   }, function() {});
   db.doc("config/track").onSnapshot(function(d) {
