@@ -3676,7 +3676,10 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   img: null
  };
  function dashOn() {
-  return !!(DASH_MQ && DASH_MQ.matches) && S.view === "day" && S.loaded;
+  if (S.view !== "day" || !S.loaded) return false;
+  var h = $("#dash");
+  if (h && document.documentElement.classList.contains("v-day")) return getComputedStyle(h).display !== "none";
+  return !!(DASH_MQ && DASH_MQ.matches);
  }
  function photoAtts(i) {
   return (Array.isArray(i && i.attachments) ? i.attachments : []).filter(function(a) {
@@ -4133,7 +4136,8 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
  function renderDash() {
   var host = $("#dash");
   if (!host) return;
-  if (!dashOn()) {
+  DASH.on = dashOn();
+  if (!DASH.on) {
    if (host.firstChild) host.replaceChildren();
    DASH.img = null;
    return;
@@ -4147,12 +4151,33 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   if (sl) parts.push(sl);
   host.replaceChildren.apply(host, parts);
  }
- if (DASH_MQ) {
-  var dashMq = function() {
-   if (S.loaded && !busy()) render();
-  };
-  if (DASH_MQ.addEventListener) DASH_MQ.addEventListener("change", dashMq); else if (DASH_MQ.addListener) DASH_MQ.addListener(dashMq);
+ function syncDash() {
+  if (!S.loaded) return;
+  var host = $("#dash"), on = dashOn();
+  if (on === !!DASH.on && !(on && host && !host.firstChild)) return;
+  if (!busy()) render(); else {
+   renderDash();
+   renderOtdChip();
+  }
  }
+ var dashSyncT = null;
+ function dashSyncSoon() {
+  clearTimeout(dashSyncT);
+  dashSyncT = setTimeout(function() {
+   syncDash();
+   dashSyncT = setTimeout(syncDash, 700);
+  }, 150);
+ }
+ if (DASH_MQ) {
+  if (DASH_MQ.addEventListener) DASH_MQ.addEventListener("change", dashSyncSoon); else if (DASH_MQ.addListener) DASH_MQ.addListener(dashSyncSoon);
+ }
+ window.addEventListener("resize", dashSyncSoon);
+ window.addEventListener("orientationchange", dashSyncSoon);
+ window.addEventListener("pageshow", dashSyncSoon);
+ if (window.visualViewport) window.visualViewport.addEventListener("resize", dashSyncSoon);
+ document.addEventListener("visibilitychange", function() {
+  if (!document.hidden) dashSyncSoon();
+ });
  function placeTray() {
   if (S.view !== "day") return;
   var hd = document.querySelector(".page > .head"), hb = hd ? hd.getBoundingClientRect().bottom + 8 : 12;
@@ -14693,7 +14718,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
    if (monthRange(S.date).first === monthRange(today()).first) renderMonth();
   } else {
    if (S.date === today()) renderTimeline(vis(itemsFor(S.date)));
-   renderDash();
+   if (dashOn() !== !!DASH.on) render(); else renderDash();
   }
  }, 6e4);
  (function() {
