@@ -3609,8 +3609,8 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   grow(W + 8, H * .14, 168, L, 9, 6);
   grow(-8, H * .62, 352, L * .8, 7, 5);
   var out = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + W + " " + H + '" preserveAspectRatio="none">';
-  out += '<defs><linearGradient id="dkFog" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--deco-fog);stop-opacity:0"/><stop offset="1" style="stop-color:var(--deco-fog);stop-opacity:.9"/></linearGradient></defs>';
-  out += '<rect x="0" y="' + f(H * .7) + '" width="' + W + '" height="' + f(H * .3 + 2) + '" fill="url(#dkFog)"/>';
+  out += '<defs><linearGradient id="dkFog" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--deco-fog);stop-opacity:0"/><stop offset="1" style="stop-color:var(--deco-fog);stop-opacity:.9"/></linearGradient>' + '<linearGradient id="dkFogX" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff"/><stop offset=".45" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient>' + '<mask id="dkFogM" maskUnits="userSpaceOnUse" x="0" y="0" width="' + W + '" height="' + H + '"><rect width="' + W + '" height="' + H + '" fill="url(#dkFogX)"/></mask>' + '<linearGradient id="dkEdgeG" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff"/><stop offset=".86" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient>' + '<mask id="dkEdge" maskUnits="userSpaceOnUse" x="0" y="0" width="' + W + '" height="' + H + '"><rect width="' + W + '" height="' + H + '" fill="url(#dkEdgeG)"/></mask>' + '</defs><g mask="url(#dkEdge)">';
+  out += '<rect x="0" y="' + f(H * .7) + '" width="' + W + '" height="' + f(H * .3 + 2) + '" fill="url(#dkFog)" mask="url(#dkFogM)"/>';
   var n = Math.round(W * H / 6e3);
   out += '<g class="dk-rain">';
   for (var k = 0; k < n; k++) {
@@ -3626,7 +3626,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
    var side = rnd() < .5, lx = (side ? rnd() * .18 : .82 + rnd() * .18) * W;
    out += decoLeaf(lx, (.3 + rnd() * .68) * H, .6 + rnd() * .35, Math.round(rnd() * 360), LEAF_C[Math.floor(rnd() * LEAF_C.length)], .6);
   }
-  return out + "</svg>";
+  return out + "</g></svg>";
  }
  function decoPine(x, b, h) {
   var f = decoNum, s = "";
@@ -3639,8 +3639,9 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
  }
  function decoWinter(W, H, rnd) {
   var f = decoNum, out = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + W + " " + H + '" preserveAspectRatio="none">';
+  out += '<defs>' + '<linearGradient id="dkEdgeG" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff"/><stop offset=".86" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient>' + '<mask id="dkEdge" maskUnits="userSpaceOnUse" x="0" y="0" width="' + W + '" height="' + H + '"><rect width="' + W + '" height="' + H + '" fill="url(#dkEdgeG)"/></mask>' + '</defs><g mask="url(#dkEdge)">';
   var gy = H * .93, s = Math.min(Math.max(W / 420, .8), 1.6);
-  [ [ .03, 150 ], [ .1, 105 ], [ .16, 80 ], [ .86, 95 ], [ .93, 140 ], [ .99, 110 ] ].forEach(function(p) {
+  [ [ .03, 150 ], [ .1, 105 ], [ .16, 80 ], [ .79, 95 ], [ .85, 140 ], [ .91, 105 ] ].forEach(function(p) {
    out += decoPine(p[0] * W, gy + 6, p[1] * s * (.85 + rnd() * .3));
   });
   out += '<path class="dk-bank" d="M0 ' + f(H) + "L0 " + f(gy) + "Q" + f(W * .25) + " " + f(gy - H * .025) + " " + f(W * .5) + " " + f(gy + H * .004) + "T" + f(W) + " " + f(gy - H * .01) + "L" + f(W) + " " + f(H) + 'Z"/>';
@@ -3657,7 +3658,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
    }
    out += '<path class="dk-cr" opacity="' + (.4 + rnd() * .3).toFixed(2) + '" transform="translate(' + f(cx) + " " + f(cy) + ')" d="' + d + '"/>';
   }
-  return out + "</svg>";
+  return out + "</g></svg>";
  }
  function drawLeaves() {
   var host = $("#leaves");
