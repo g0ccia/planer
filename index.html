@@ -132,6 +132,43 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .leaves svg { position: absolute; inset: 0; width: 100%; height: 100%; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .leaves { opacity: 0.28; } }
 :root[data-theme="dark"] .leaves { opacity: 0.28; }
+/* Jahreszeiten-Stil (config/look): Spätherbst und Winter, je nach angezeigtem Datum */
+:root[data-season="spaet"] {
+  --bg: #F3F2F0; --surface: #FCFBFA; --fg: #24252B; --fg-soft: #5F6068; --muted: #93928F;
+  --line: #E5E3E0; --line-strong: #CFCCC7; --on-accent: #FCFBFA;
+  --shadow: rgba(20, 22, 30, 0.14); --scrim: rgba(16, 18, 24, 0.42);
+  --deco-ink: #CFCBC6; --deco-rain: #8E96A6; --deco-fog: #DAD8D5; --deco-snow: #AEBBCD; --deco-bank: #E6E9EE;
+}
+:root[data-season="winter"] {
+  --bg: #F1F4F8; --surface: #FBFCFE; --fg: #1C2433; --fg-soft: #56627A; --muted: #8C97A8;
+  --line: #E0E6EE; --line-strong: #C6D0DD; --on-accent: #FBFCFE;
+  --shadow: rgba(15, 25, 45, 0.14); --scrim: rgba(10, 16, 30, 0.42);
+  --deco-ink: #D3D9E2; --deco-rain: #8E96A6; --deco-fog: #DDE3EB; --deco-snow: #B3C1D4; --deco-bank: #E3E9F1;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-season="spaet"]:not([data-theme="light"]) {
+    --bg: #16181E; --surface: #20232B; --fg: #EEEAE6; --fg-soft: #BDB7B1; --muted: #8A857F;
+    --line: #2A2D36; --line-strong: #3C404B; --on-accent: #16181E;
+    --shadow: rgba(0, 0, 0, 0.5); --scrim: rgba(6, 7, 10, 0.6);
+    --drive: #A3A6AC; --drive-hatch: rgba(163, 166, 172, 0.2);
+    --deco-ink: #0A0B0F; --deco-rain: #9AA2B2; --deco-fog: #2A2D36; --deco-snow: #C9D3E0; --deco-bank: #1B2333;
+  }
+  :root[data-season="winter"]:not([data-theme="light"]) {
+    --bg: #0F1626; --surface: #182236; --fg: #EAF0F7; --fg-soft: #B4C0D1; --muted: #7F8CA1;
+    --line: #223049; --line-strong: #33445F; --on-accent: #0F1626;
+    --shadow: rgba(0, 0, 0, 0.5); --scrim: rgba(4, 7, 14, 0.6);
+    --drive: #A0A9B8; --drive-hatch: rgba(160, 169, 184, 0.2);
+    --deco-ink: #070B14; --deco-rain: #9AA2B2; --deco-fog: #1C2740; --deco-snow: #C9D3E0; --deco-bank: #1A2438;
+  }
+}
+body { transition: background-color 0.35s ease; }
+.leaves.is-deco { opacity: 1 !important; }
+.leaves .dk-br path { fill: none; stroke: var(--deco-ink); stroke-linecap: round; }
+.leaves .dk-rain path { fill: none; stroke: var(--deco-rain); stroke-width: 0.8; stroke-linecap: round; }
+.leaves .dk-ink { fill: var(--deco-ink); }
+.leaves .dk-snow { fill: var(--deco-snow); }
+.leaves .dk-bank { fill: var(--deco-bank); }
+.leaves .dk-cr { fill: none; stroke: var(--deco-snow); stroke-width: 0.9; stroke-linecap: round; }
 @media (min-width: 960px) {
   html.v-day { --dl: max(0px, (100vw - 1180px) / 2); --dw: calc(min(100vw, 1180px) - 620px); }
   html.v-day .page { max-width: 1180px; padding-left: calc(var(--dw) + 16px); }
@@ -3599,6 +3636,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
  }
  function render() {
   var v = S.view, wk = v === "week", mo = v === "month";
+  applyLook();
   var page = document.querySelector(".page");
   page.classList.toggle("is-week", wk);
   page.classList.toggle("is-month", mo);
@@ -3637,18 +3675,147 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
  }
  var LEAF_D = [ "M0-10 2-5 5-7 4-2 9-3 6 1 8 3 3 3 2 6 .6 4 .6 10-.6 10-.6 4-2 6-3 3-8 3-6 1-9-3-4-2-5-7-2-5Z", "M0-10C7-7 7 5 0 10-7 5-7-7 0-10Z", "M0-11C4-6 4 6 0 11-4 6-4-6 0-11Z" ];
  var LEAF_C = [ "#C2562B", "#D9902F", "#9B2A24", "#B8742E", "#8C4A2B" ];
+ // Jahreszeiten-Stil: config/look = { list: [ { style: "spaet" | "winter" | "herbst" | "", day: "JJJJ-MM-TT", week: "JJJJ-MM-TT" (Montag), month: "JJJJ-MM" } ] }
+ // Es gilt der jüngste Eintrag, dessen Datum für die aktuelle Ansicht vor oder auf dem angezeigten Tag / Wochenanfang / Monatsersten liegt.
+ // Ohne passenden Eintrag: Herbstblätter von September bis November, sonst nichts.
+ var LOOK = {
+  cur: null
+ };
+ try {
+  S.look = JSON.parse(localStorage.getItem("planer.look") || "null");
+ } catch (e) {}
+ function lookFor(view, ds) {
+  var key = view === "week" ? "week" : view === "month" ? "month" : "day";
+  ds = ds || today();
+  var p = key === "week" ? weekStart(ds) : key === "month" ? monthRange(ds).first : ds;
+  var list = S.look && Array.isArray(S.look.list) ? S.look.list : [], best = null, bd = "";
+  list.forEach(function(e) {
+   var f = e && (e[key] || e.from);
+   if (typeof f !== "string" || f.length < 7) return;
+   if (f.length === 7) f += "-01";
+   if (f <= p && f >= bd) {
+    best = e;
+    bd = f;
+   }
+  });
+  if (best) return [ "spaet", "winter", "herbst" ].indexOf(best.style) >= 0 ? best.style : "";
+  var m = +p.slice(5, 7);
+  return m >= 9 && m <= 11 ? "herbst" : "";
+ }
+ function applyLook() {
+  if (!LOOK) return;
+  var st = lookFor(S.view, S.date), root = document.documentElement;
+  if (st === "spaet" || st === "winter") root.setAttribute("data-season", st); else root.removeAttribute("data-season");
+  if (LOOK.cur === st) return;
+  LOOK.cur = st;
+  var bg = {
+   spaet: [ "#F3F2F0", "#16181E" ],
+   winter: [ "#F1F4F8", "#0F1626" ]
+  }[st] || [ "#FBF7F3", "#21130F" ];
+  document.querySelectorAll('meta[name="theme-color"]').forEach(function(m) {
+   m.setAttribute("content", /dark/.test(m.getAttribute("media") || "") ? bg[1] : bg[0]);
+  });
+  drawLeaves();
+ }
+ function decoNum(v) {
+  return v.toFixed(1);
+ }
+ function decoLeaf(x, y, sz, rot, c, o) {
+  return '<g transform="translate(' + decoNum(x) + " " + decoNum(y) + ") rotate(" + rot + ") scale(" + sz.toFixed(2) + ')">' + '<path d="' + LEAF_D[1] + '" fill="' + c + '" fill-opacity="' + o + '"/>' + '<path d="M0-8V13" fill="none" stroke="#000" stroke-opacity=".28" stroke-width=".8"/></g>';
+ }
+ function decoSpaet(W, H, rnd) {
+  var f = decoNum, br = [], tips = [];
+  function grow(x, y, ang, len, w, d) {
+   var a = ang + (rnd() - .5) * 16, r = a * Math.PI / 180;
+   var x1 = x + Math.cos(r) * len, y1 = y + Math.sin(r) * len;
+   var cx = (x + x1) / 2 + (rnd() - .5) * .25 * len, cy = (y + y1) / 2 + (rnd() - .5) * .25 * len;
+   br.push('<path d="M' + f(x) + " " + f(y) + "Q" + f(cx) + " " + f(cy) + " " + f(x1) + " " + f(y1) + '" stroke-width="' + w.toFixed(2) + '"/>');
+   if (d <= 0 || w < .7) {
+    tips.push([ x1, y1 ]);
+    return;
+   }
+   var n = rnd() < .7 ? 2 : 3;
+   for (var i = 0; i < n; i++) {
+    var off = n === 2 ? (i ? 1 : -1) * (16 + rnd() * 18) : (i - 1) * (22 + rnd() * 10);
+    grow(x1, y1, a + off, len * (.66 + rnd() * .14), w * (.6 + rnd() * .12), d - 1);
+   }
+  }
+  var L = Math.min(Math.max(W * .2, 120), 240);
+  grow(W + 8, H * .14, 168, L, 9, 6);
+  grow(-8, H * .62, 352, L * .8, 7, 5);
+  var out = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + W + " " + H + '" preserveAspectRatio="none">';
+  out += '<defs><linearGradient id="dkFog" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--deco-fog);stop-opacity:0"/><stop offset="1" style="stop-color:var(--deco-fog);stop-opacity:.9"/></linearGradient></defs>';
+  out += '<rect x="0" y="' + f(H * .7) + '" width="' + W + '" height="' + f(H * .3 + 2) + '" fill="url(#dkFog)"/>';
+  var n = Math.round(W * H / 6e3);
+  out += '<g class="dk-rain">';
+  for (var k = 0; k < n; k++) {
+   var x = rnd() * W, y = rnd() * H, l = 9 + rnd() * 10;
+   out += '<path d="M' + f(x) + " " + f(y) + "l" + f(-l * .2) + " " + f(l) + '" opacity="' + (.25 + rnd() * .35).toFixed(2) + '"/>';
+  }
+  out += '</g><g class="dk-br">' + br.join("") + "</g>";
+  for (var j = 0; j < 6 && tips.length; j++) {
+   var t = tips.splice(Math.floor(rnd() * tips.length), 1)[0];
+   out += decoLeaf(t[0], t[1] + 6, .55 + rnd() * .25, Math.round(rnd() * 50 - 25), LEAF_C[Math.floor(rnd() * LEAF_C.length)], .8);
+  }
+  for (var q = 0; q < 5; q++) {
+   var side = rnd() < .5, lx = (side ? rnd() * .18 : .82 + rnd() * .18) * W;
+   out += decoLeaf(lx, (.3 + rnd() * .68) * H, .6 + rnd() * .35, Math.round(rnd() * 360), LEAF_C[Math.floor(rnd() * LEAF_C.length)], .6);
+  }
+  return out + "</svg>";
+ }
+ function decoPine(x, b, h) {
+  var f = decoNum, s = "";
+  for (var i = 0; i < 4; i++) {
+   var fr = i / 4, yb = b - h * (.06 + .8 * fr), yt = i === 3 ? b - h : yb - h * .36, w = h * (.5 - .38 * fr), sy = yt + (yb - yt) * .45, sw = w * .225;
+   s += '<path class="dk-ink" d="M' + f(x - w / 2) + " " + f(yb) + "L" + f(x + w / 2) + " " + f(yb) + "L" + f(x) + " " + f(yt) + 'Z"/>';
+   s += '<path class="dk-snow" opacity=".5" d="M' + f(x - sw) + " " + f(sy) + "Q" + f(x) + " " + f(sy + h * .03) + " " + f(x + sw) + " " + f(sy) + "L" + f(x) + " " + f(yt) + 'Z"/>';
+  }
+  return s + '<rect class="dk-ink" x="' + f(x - h * .025) + '" y="' + f(b - h * .08) + '" width="' + f(h * .05) + '" height="' + f(h * .1) + '"/>';
+ }
+ function decoWinter(W, H, rnd) {
+  var f = decoNum, out = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + W + " " + H + '" preserveAspectRatio="none">';
+  var gy = H * .93, s = Math.min(Math.max(W / 420, .8), 1.6);
+  [ [ .03, 150 ], [ .1, 105 ], [ .16, 80 ], [ .86, 95 ], [ .93, 140 ], [ .99, 110 ] ].forEach(function(p) {
+   out += decoPine(p[0] * W, gy + 6, p[1] * s * (.85 + rnd() * .3));
+  });
+  out += '<path class="dk-bank" d="M0 ' + f(H) + "L0 " + f(gy) + "Q" + f(W * .25) + " " + f(gy - H * .025) + " " + f(W * .5) + " " + f(gy + H * .004) + "T" + f(W) + " " + f(gy - H * .01) + "L" + f(W) + " " + f(H) + 'Z"/>';
+  var n = Math.round(W * H / 2600);
+  for (var k = 0; k < n; k++) out += '<circle class="dk-snow" cx="' + f(rnd() * W) + '" cy="' + f(rnd() * H) + '" r="' + (.7 + rnd() * 1.7).toFixed(1) + '" opacity="' + (.25 + rnd() * .5).toFixed(2) + '"/>';
+  for (var c = 0; c < 7; c++) {
+   var cx = rnd() * W, cy = rnd() * H * .9, r = 4 + rnd() * 5, a0 = rnd() * 60, d = "";
+   for (var i = 0; i < 6; i++) {
+    var a = (a0 + i * 60) * Math.PI / 180, ex = Math.cos(a) * r, ey = Math.sin(a) * r, mx = ex * .55, my = ey * .55;
+    d += "M0 0L" + f(ex) + " " + f(ey);
+    [ -.7, .7 ].forEach(function(da) {
+     d += "M" + f(mx) + " " + f(my) + "l" + f(Math.cos(a + da) * r * .3) + " " + f(Math.sin(a + da) * r * .3);
+    });
+   }
+   out += '<path class="dk-cr" opacity="' + (.4 + rnd() * .3).toFixed(2) + '" transform="translate(' + f(cx) + " " + f(cy) + ')" d="' + d + '"/>';
+  }
+  return out + "</svg>";
+ }
  function drawLeaves() {
   var host = $("#leaves");
   if (!host) return;
-  var mo = (new Date).getMonth();
-  if (mo < 8 || mo > 10) {
+  var st = LOOK && LOOK.cur != null ? LOOK.cur : lookFor(S.view, S.date);
+  if (!st) {
    host.replaceChildren();
    host.dataset.k = "";
+   host.classList.remove("is-deco");
    return;
   }
-  var W = window.innerWidth, H = window.innerHeight, key = W + "x" + H;
+  var W = window.innerWidth, H = window.innerHeight, key = st + ":" + W + "x" + H;
   if (!W || !H || host.dataset.k === key) return;
   host.dataset.k = key;
+  host.classList.toggle("is-deco", st !== "herbst");
+  if (st !== "herbst") {
+   var sd = st === "winter" ? 20261201 : 20261128, rn = function() {
+    sd = sd * 1664525 + 1013904223 >>> 0;
+    return sd / 4294967296;
+   };
+   host.innerHTML = st === "winter" ? decoWinter(W, H, rn) : decoSpaet(W, H, rn);
+   return;
+  }
   var seed = 20261108, rnd = function() {
    seed = seed * 1664525 + 1013904223 >>> 0;
    return seed / 4294967296;
@@ -3664,7 +3831,7 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   }
   host.innerHTML = out + "</svg>";
  }
- drawLeaves();
+ applyLook();
  var leafTimer = null;
  window.addEventListener("resize", function() {
   clearTimeout(leafTimer);
@@ -15021,6 +15188,13 @@ body.inking { -webkit-user-select: none; user-select: none; -webkit-touch-callou
   db.doc("config/track").onSnapshot(function(d) {
    S.tcfg = d.exists ? d.data() : null;
    if (S.loaded && !busy()) renderTrack();
+  }, function() {});
+  db.doc("config/look").onSnapshot(function(d) {
+   S.look = d.exists ? d.data() : null;
+   try {
+    if (S.look) localStorage.setItem("planer.look", JSON.stringify(S.look)); else localStorage.removeItem("planer.look");
+   } catch (e) {}
+   applyLook();
   }, function() {});
   db.doc("config/tags").onSnapshot(function(d) {
    var v = d.exists ? d.data() : null;
